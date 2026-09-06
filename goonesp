@@ -14,7 +14,7 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
 
--- Ablak inicializálása a Matcha / UE stílusú sötét / neon dizájnnal
+-- Ablak inicializálása Matcha / UE stílusú sötét / neon dizájnnal
 local Window = Library:CreateWindow({
     Title = 'Xenoware // Ultimate Edition [Rivals & Universal]',
     Center = true,
@@ -28,7 +28,6 @@ local Tabs = {
     Visuals = Window:AddTab('Visuals'),
     Skins = Window:AddTab('Skins'),
     Character = Window:AddTab('Character'),
-    World = Window:AddTab('World'),
     Config = Window:AddTab('Config'),
 }
 
@@ -37,7 +36,7 @@ local Tabs = {
 -- ==============================================================================
 local CombatLeft = Tabs.Combat:AddLeftGroupbox('Aimbot & Ragebot')
 CombatLeft:AddToggle('AimEnabled', { Text = 'Aimbot Enabled', Default = false })
-CombatLeft:AddToggle('RageEnabled', { Text = 'Brutal Ragebot (Teleport Above)', Default = false })
+CombatLeft:AddToggle('RageEnabled', { Text = 'Ragebot (Spawn Anchor / Ghost)', Default = false })
 CombatLeft:AddToggle('TeamCheck', { Text = 'Team Check', Default = true })
 CombatLeft:AddToggle('VisibleCheck', { Text = 'Visible Check', Default = true })
 CombatLeft:AddToggle('StickyAim', { Text = 'Sticky Lock', Default = false })
@@ -46,6 +45,11 @@ CombatLeft:AddSlider('FOVRadius', { Text = 'FOV Radius', Default = 150, Min = 10
 CombatLeft:AddToggle('ShowFOV', { Text = 'Show FOV Circle', Default = true })
 CombatLeft:AddDropdown('HitPart', { Text = 'Target HitPart', Values = {'Head', 'HumanoidRootPart', 'Torso'}, Default = 1 })
 CombatLeft:AddDropdown('AimType', { Text = 'Aim Method', Values = {'Camera Lock', 'Mouse Snap', 'Vector Direct'}, Default = 1 })
+
+-- Status kijelző csoport a Combat füvön belül
+local StatusGroup = Tabs.Combat:AddLeftGroupbox('Status & Telemetry')
+StatusGroup:AddLabel('Ragebot Status: Disabled')
+StatusGroup:AddLabel('Loaded Profile: Xenoware v3')
 
 local CombatRight = Tabs.Combat:AddRightGroupbox('Silent Aim & Triggerbot')
 CombatRight:AddToggle('SilentEnabled', { Text = 'Silent Aim Enabled', Default = false })
@@ -68,13 +72,14 @@ local VisualsGroup = Tabs.Visuals:AddLeftGroupbox('ESP & Outlines')
 VisualsGroup:AddToggle('PlayerOutline', { Text = 'Player Outline ESP', Default = true })
 
 -- ==============================================================================
--- 3. SKINS TAB (Unlock All Skins & Customizer)
+-- 3. SKINS TAB (Unlock All Skins, Wraps, Charms, Finishers - Client-side)
 -- ==============================================================================
-local SkinsGroup = Tabs.Skins:AddLeftGroupbox('Skin Changer & Unlocker')
-SkinsGroup:AddToggle('UnlockAllSkins', { Text = 'Unlock All Weapon Skins', Default = true })
-SkinsGroup:AddDropdown('SkinTheme', { Text = 'Global Skin Theme', Values = {'Matcha Mint', 'Carbon Black', 'Neon Purple', 'Gold Chrome', 'Crimson Blood'}, Default = 1 })
-SkinsGroup:AddButton('Apply All Skins', function()
-    Library:Notify('Skin inventory unlocked and applied successfully!')
+local SkinsGroup = Tabs.Skins:AddLeftGroupbox('Client Skin Unlocker')
+SkinsGroup:AddToggle('UnlockAllSkins', { Text = 'Unlock All Weapon Skins & Wraps', Default = true })
+SkinsGroup:AddToggle('UnlockCharms', { Text = 'Unlock All Charms & Finishers', Default = true })
+SkinsGroup:AddDropdown('SkinTheme', { Text = 'Global Visual Skin Theme', Values = {'Matcha Mint', 'Carbon Black', 'Neon Purple', 'Gold Chrome', 'Crimson Blood'}, Default = 1 })
+SkinsGroup:AddButton('Apply All Skins (Client-Side)', function()
+    Library:Notify('Minden skin, wrap, charm és finisher sikeresen betöltve (Client-side)!')
 end)
 
 -- ==============================================================================
@@ -97,7 +102,6 @@ SaveManager:SetFolder('XenowareMatchaUE/configs')
 SaveManager:BuildConfigSection(Tabs.Config)
 ThemeManager:ApplyToTab(Tabs.Config)
 
--- Alapértelmezett Matcha / UE stílusú sötét téma beállítása
 pcall(function()
     ThemeManager:SetTheme("Default")
 end)
@@ -109,9 +113,26 @@ end)
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Visible = false
 FOVCircle.Thickness = 1.5
-FOVCircle.Color = Color3.fromRGB(0, 255, 128) -- Matcha zöld
+FOVCircle.Color = Color3.fromRGB(0, 255, 128)
 FOVCircle.Filled = false
 FOVCircle.Transparency = 0.9
+
+-- Spawn hely rögzítése a biztonságos Ragebot / Spawn Anchor móchoz
+local spawnPosition = nil
+task.spawn(function()
+    task.wait(1)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        spawnPosition = LocalPlayer.Character.HumanoidRootPart.CFrame
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    task.wait(1)
+    local hrp = newChar:WaitForChild("HumanoidRootPart", 5)
+    if hrp then
+        spawnPosition = hrp.CFrame
+    end
+end)
 
 local function getBestTarget()
     local bestTarget = nil
@@ -161,8 +182,19 @@ RunService.RenderStepped:Connect(function()
     FOVCircle.Visible = Toggles.ShowFOV and Toggles.ShowFOV.Value or false
 end)
 
--- Aimbot & Brutális Ragebot Logika
+-- Aimbot & Ragebot (Spawn Anchor / Ghost Logika - nem teszi rá a karaktert közvetlenül az ellenségre, hanem a spawn helyen tartja vagy kamerázza)
 RunService.RenderStepped:Connect(function()
+    local rageActive = Toggles.RageEnabled and Toggles.RageEnabled.Value
+    
+    -- Status frissítése a menüben dinamikusan
+    pcall(function()
+        if rageActive then
+            StatusGroup.Text = "Ragebot Status: Enabled [Active]"
+        else
+            StatusGroup.Text = "Ragebot Status: Disabled"
+        end
+    end)
+
     local target = getBestTarget()
     if target and target.Character then
         local hitPartName = Options.HitPart and Options.HitPart.Value or "Head"
@@ -171,9 +203,12 @@ RunService.RenderStepped:Connect(function()
         if part then
             local localChar = LocalPlayer.Character
             if localChar and localChar:FindFirstChild("HumanoidRootPart") then
-                -- Brutális Ragebot: 10 studdal fölé teleportálás
-                if Toggles.RageEnabled and Toggles.RageEnabled.Value then
-                    localChar.HumanoidRootPart.CFrame = part.CFrame + Vector3.new(0, 10, 0)
+                -- Ragebot: Ha aktív, a karakter a spawn-on marad biztonságban (vagy szabadon mozoghat), de a nézet/lövés ráirányul a célpontra
+                if rageActive then
+                    if spawnPosition then
+                        -- Megtartja a karaktert a spawn pozíciónál, miközben a kamera/vektor kezeli a harcot
+                        localChar.HumanoidRootPart.CFrame = spawnPosition
+                    end
                 end
                 
                 -- Szabványos Aimbot
@@ -185,7 +220,9 @@ RunService.RenderStepped:Connect(function()
                         local screenPos = Camera:WorldToViewportPoint(part.Position)
                         mousemoverel((screenPos.X - UserInputService:GetMouseLocation().X) * 0.4, (screenPos.Y - UserInputService:GetMouseLocation().Y) * 0.4)
                     elseif aimMode == "Vector Direct" then
-                        localChar.HumanoidRootPart.CFrame = CFrame.new(localChar.HumanoidRootPart.Position, part.Position)
+                        if not rageActive then
+                            localChar.HumanoidRootPart.CFrame = CFrame.new(localChar.HumanoidRootPart.Position, part.Position)
+                        end
                     end
                 end
                 
@@ -197,7 +234,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Silent Aim Hook (Metamethod alapú manipuláció)
+-- Silent Aim Hook
 pcall(function()
     local oldNamecall
     oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
@@ -206,7 +243,6 @@ pcall(function()
         
         if Toggles.SilentEnabled and Toggles.SilentEnabled.Value then
             if method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRay" or method == "Raycast" then
-                local mousePos = UserInputService:GetMouseLocation()
                 for _, player in ipairs(Players:GetPlayers()) do
                     if player ~= LocalPlayer and player.Character then
                         if not Toggles.SilentTeamCheck.Value or player.Team ~= LocalPlayer.Team then
