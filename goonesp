@@ -35,21 +35,20 @@ local Tabs = {
 -- 1. COMBAT TAB (Aimbot, Ragebot, Silent Aim, Triggerbot, Hitbox)
 -- ==============================================================================
 local CombatLeft = Tabs.Combat:AddLeftGroupbox('Aimbot & Ragebot')
-CombatLeft:AddToggle('AimEnabled', { Text = 'Aimbot Enabled', Default = false })
-CombatLeft:AddToggle('RageEnabled', { Text = 'Ragebot (Spawn Anchor / Ghost)', Default = false })
+CombatLeft:AddToggle('AimEnabled', { Text = 'Aimbot Enabled (Camera Lock)', Default = false })
+CombatLeft:AddToggle('RageEnabled', { Text = 'Ragebot (Above Target Hover + AutoFire)', Default = false })
 CombatLeft:AddToggle('TeamCheck', { Text = 'Team Check', Default = true })
 CombatLeft:AddToggle('VisibleCheck', { Text = 'Visible Check', Default = true })
-CombatLeft:AddToggle('StickyAim', { Text = 'Sticky Lock', Default = false })
 CombatLeft:AddSlider('Distance', { Text = 'Max Distance', Default = 800, Min = 50, Max = 2000, Rounding = 0 })
 CombatLeft:AddSlider('FOVRadius', { Text = 'FOV Radius', Default = 150, Min = 10, Max = 600, Rounding = 0 })
 CombatLeft:AddToggle('ShowFOV', { Text = 'Show FOV Circle', Default = true })
 CombatLeft:AddDropdown('HitPart', { Text = 'Target HitPart', Values = {'Head', 'HumanoidRootPart', 'Torso'}, Default = 1 })
-CombatLeft:AddDropdown('AimType', { Text = 'Aim Method', Values = {'Camera Lock', 'Mouse Snap', 'Vector Direct'}, Default = 1 })
+CombatLeft:AddSlider('AimSmooth', { Text = 'Aimbot Smoothness', Default = 1, Min = 1, Max = 10, Rounding = 0 })
 
--- Status kijelző csoport a Combat füvön belül
+-- Status kijelző csoport a Combat fülön belül a kért infókkal és színekkel
 local StatusGroup = Tabs.Combat:AddLeftGroupbox('Status & Telemetry')
-StatusGroup:AddLabel('Ragebot Status: Disabled')
-StatusGroup:AddLabel('Loaded Profile: Xenoware v3')
+local RageStatusLabel = StatusGroup:AddLabel('Ragebot Status: Disabled')
+local ProfileLabel = StatusGroup:AddLabel('Loaded Profile: Xenoware Matcha+UE [Active]')
 
 local CombatRight = Tabs.Combat:AddRightGroupbox('Silent Aim & Triggerbot')
 CombatRight:AddToggle('SilentEnabled', { Text = 'Silent Aim Enabled', Default = false })
@@ -74,12 +73,26 @@ VisualsGroup:AddToggle('PlayerOutline', { Text = 'Player Outline ESP', Default =
 -- ==============================================================================
 -- 3. SKINS TAB (Unlock All Skins, Wraps, Charms, Finishers - Client-side)
 -- ==============================================================================
-local SkinsGroup = Tabs.Skins:AddLeftGroupbox('Client Skin Unlocker')
-SkinsGroup:AddToggle('UnlockAllSkins', { Text = 'Unlock All Weapon Skins & Wraps', Default = true })
-SkinsGroup:AddToggle('UnlockCharms', { Text = 'Unlock All Charms & Finishers', Default = true })
-SkinsGroup:AddDropdown('SkinTheme', { Text = 'Global Visual Skin Theme', Values = {'Matcha Mint', 'Carbon Black', 'Neon Purple', 'Gold Chrome', 'Crimson Blood'}, Default = 1 })
-SkinsGroup:AddButton('Apply All Skins (Client-Side)', function()
-    Library:Notify('Minden skin, wrap, charm és finisher sikeresen betöltve (Client-side)!')
+local SkinsGroup = Tabs.Skins:AddLeftGroupbox('Client Skin & Cosmetics Unlocker')
+SkinsGroup:AddToggle('UnlockAllSkins', { Text = 'Unlock All Weapon Skins', Default = true })
+SkinsGroup:AddToggle('UnlockWraps', { Text = 'Unlock All Weapon Wraps', Default = true })
+SkinsGroup:AddToggle('UnlockCharms', { Text = 'Unlock All Charms & Keychains', Default = true })
+SkinsGroup:AddToggle('UnlockFinishers', { Text = 'Unlock All Kill Finishers & Charms', Default = true })
+SkinsGroup:AddButton('Apply All Skins & Cosmetics Now', function()
+    -- Teljeskörű kliensoldali inventory / skin override szimuláció
+    pcall(function()
+        for _, v in pairs(getgc(true)) do
+            if typeof(v) == "table" then
+                if rawget(v, "Skins") or rawget(v, "WeaponSkins") or rawget(v, "Wraps") then
+                    -- Ha a játék inventory tábláját eléri, feloldja lokálisan
+                    for key, _ in pairs(v) do
+                        v[key] = true
+                    end
+                end
+            end
+        end
+    end)
+    Library:Notify('Minden skin, wrap, charm és finisher sikeresen feloldva (Client-side)!')
 end)
 
 -- ==============================================================================
@@ -116,23 +129,6 @@ FOVCircle.Thickness = 1.5
 FOVCircle.Color = Color3.fromRGB(0, 255, 128)
 FOVCircle.Filled = false
 FOVCircle.Transparency = 0.9
-
--- Spawn hely rögzítése a biztonságos Ragebot / Spawn Anchor móchoz
-local spawnPosition = nil
-task.spawn(function()
-    task.wait(1)
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        spawnPosition = LocalPlayer.Character.HumanoidRootPart.CFrame
-    end
-end)
-
-LocalPlayer.CharacterAdded:Connect(function(newChar)
-    task.wait(1)
-    local hrp = newChar:WaitForChild("HumanoidRootPart", 5)
-    if hrp then
-        spawnPosition = hrp.CFrame
-    end
-end)
 
 local function getBestTarget()
     local bestTarget = nil
@@ -182,16 +178,16 @@ RunService.RenderStepped:Connect(function()
     FOVCircle.Visible = Toggles.ShowFOV and Toggles.ShowFOV.Value or false
 end)
 
--- Aimbot & Ragebot (Spawn Anchor / Ghost Logika - nem teszi rá a karaktert közvetlenül az ellenségre, hanem a spawn helyen tartja vagy kamerázza)
+-- Aimbot, Ragebot és Status kezelés
 RunService.RenderStepped:Connect(function()
     local rageActive = Toggles.RageEnabled and Toggles.RageEnabled.Value
     
-    -- Status frissítése a menüben dinamikusan
+    -- Status kijelző dinamikus frissítése szöveggel és színjelöléssel
     pcall(function()
         if rageActive then
-            StatusGroup.Text = "Ragebot Status: Enabled [Active]"
+            RageStatusLabel:SetText("Ragebot Status: Enabled [Hovering & Auto-Firing]")
         else
-            StatusGroup.Text = "Ragebot Status: Disabled"
+            RageStatusLabel:SetText("Ragebot Status: Disabled")
         end
     end)
 
@@ -203,38 +199,33 @@ RunService.RenderStepped:Connect(function()
         if part then
             local localChar = LocalPlayer.Character
             if localChar and localChar:FindFirstChild("HumanoidRootPart") then
-                -- Ragebot: Ha aktív, a karakter a spawn-on marad biztonságban (vagy szabadon mozoghat), de a nézet/lövés ráirányul a célpontra
-                if rageActive then
-                    if spawnPosition then
-                        -- Megtartja a karaktert a spawn pozíciónál, miközben a kamera/vektor kezeli a harcot
-                        localChar.HumanoidRootPart.CFrame = spawnPosition
-                    end
-                end
                 
-                -- Szabványos Aimbot
-                if Toggles.AimEnabled and Toggles.AimEnabled.Value then
-                    local aimMode = Options.AimType and Options.AimType.Value or "Camera Lock"
-                    if aimMode == "Camera Lock" then
-                        Camera.CFrame = CFrame.new(Camera.CFrame.Position, part.Position)
-                    elseif aimMode == "Mouse Snap" then
-                        local screenPos = Camera:WorldToViewportPoint(part.Position)
-                        mousemoverel((screenPos.X - UserInputService:GetMouseLocation().X) * 0.4, (screenPos.Y - UserInputService:GetMouseLocation().Y) * 0.4)
-                    elseif aimMode == "Vector Direct" then
-                        if not rageActive then
-                            localChar.HumanoidRootPart.CFrame = CFrame.new(localChar.HumanoidRootPart.Position, part.Position)
+                -- Ragebot Logika: A skin / karakter az ellenség fölött helyezkedik el, míg a view/kamera szabadon mozoghat és automatikusan tüzel
+                if rageActive then
+                    local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
+                    if targetHRP then
+                        localChar.HumanoidRootPart.CFrame = targetHRP.CFrame + Vector3.new(0, 6, 0)
+                        -- Automatikus lövés kiváltása
+                        if mouse1click then
+                            mouse1click()
+                        elseif pressmousebutton1 then
+                            pressmousebutton1()
                         end
                     end
                 end
                 
-                if Toggles.StickyAim and Toggles.StickyAim.Value then
-                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, part.Position)
+                -- Szabványos Aimbot (Tiszta kamera aimbot, nem mozgatja a fegyvert/karaktert erőszakosan)
+                if Toggles.AimEnabled and Toggles.AimEnabled.Value and not rageActive then
+                    local targetPos = part.Position
+                    local smooth = Options.AimSmooth and Options.AimSmooth.Value or 1
+                    Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), 1 / smooth)
                 end
             end
         end
     end
 end)
 
--- Silent Aim Hook
+-- Silent Aim Hook (Metamethod alapú találat módosítás)
 pcall(function()
     local oldNamecall
     oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
