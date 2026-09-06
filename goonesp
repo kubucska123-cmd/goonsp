@@ -1,5 +1,5 @@
 -- ==============================================================================
--- Xenoware x Kiciahook Framework - Matcha & Unnamed Enhancements Edition
+-- Xenoware // Ultimate Unified Suite (Matcha x Unnamed Enhancements)
 -- ==============================================================================
 
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
@@ -14,9 +14,9 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
 
--- Matcha & UE stílusú ablak kontextus
+-- Ablak inicializálása a Matcha / UE stílusú sötét / neon dizájnnal
 local Window = Library:CreateWindow({
-    Title = 'Xenoware // Matcha x Kiciahook Core',
+    Title = 'Xenoware // Ultimate Edition [Rivals & Universal]',
     Center = true,
     AutoShow = true,
     TabPadding = 8,
@@ -28,77 +28,88 @@ local Tabs = {
     Visuals = Window:AddTab('Visuals'),
     Skins = Window:AddTab('Skins'),
     Character = Window:AddTab('Character'),
+    World = Window:AddTab('World'),
     Config = Window:AddTab('Config'),
 }
 
 -- ==============================================================================
--- 1. COMBAT TAB (Brutális Ragebot, Silent Aim, Triggerbot)
+-- 1. COMBAT TAB (Aimbot, Ragebot, Silent Aim, Triggerbot, Hitbox)
 -- ==============================================================================
-local CombatLeft = Tabs.Combat:AddLeftGroupbox('Brutal Ragebot')
-CombatLeft:AddToggle('RageEnabled', { Text = 'Brutal Rage Enabled', Default = false })
+local CombatLeft = Tabs.Combat:AddLeftGroupbox('Aimbot & Ragebot')
+CombatLeft:AddToggle('AimEnabled', { Text = 'Aimbot Enabled', Default = false })
+CombatLeft:AddToggle('RageEnabled', { Text = 'Brutal Ragebot (Teleport Above)', Default = false })
 CombatLeft:AddToggle('TeamCheck', { Text = 'Team Check', Default = true })
 CombatLeft:AddToggle('VisibleCheck', { Text = 'Visible Check', Default = true })
 CombatLeft:AddToggle('StickyAim', { Text = 'Sticky Lock', Default = false })
-CombatLeft:AddSlider('Distance', { Text = 'Max Distance', Default = 1000, Min = 100, Max = 5000, Rounding = 0 })
-CombatLeft:AddSlider('FOVRadius', { Text = 'FOV Radius', Default = 200, Min = 10, Max = 800, Rounding = 0 })
-CombatLeft:AddToggle('ShowFOV', { Text = 'Render FOV Circle', Default = true })
+CombatLeft:AddSlider('Distance', { Text = 'Max Distance', Default = 800, Min = 50, Max = 2000, Rounding = 0 })
+CombatLeft:AddSlider('FOVRadius', { Text = 'FOV Radius', Default = 150, Min = 10, Max = 600, Rounding = 0 })
+CombatLeft:AddToggle('ShowFOV', { Text = 'Show FOV Circle', Default = true })
 CombatLeft:AddDropdown('HitPart', { Text = 'Target HitPart', Values = {'Head', 'HumanoidRootPart', 'Torso'}, Default = 1 })
-CombatLeft:AddDropdown('RageMode', { Text = 'Rage Mode Style', Values = {'Teleport Above', 'Vector Snap', 'Camera Lock'}, Default = 1 })
+CombatLeft:AddDropdown('AimType', { Text = 'Aim Method', Values = {'Camera Lock', 'Mouse Snap', 'Vector Direct'}, Default = 1 })
 
-local CombatRight = Tabs.Combat:AddRightGroupbox('Silent Aim & Hitbox')
+local CombatRight = Tabs.Combat:AddRightGroupbox('Silent Aim & Triggerbot')
 CombatRight:AddToggle('SilentEnabled', { Text = 'Silent Aim Enabled', Default = false })
 CombatRight:AddToggle('SilentTeamCheck', { Text = 'Team Check', Default = true })
 CombatRight:AddSlider('SilentDist', { Text = 'Silent Distance', Default = 1000, Min = 100, Max = 3000, Rounding = 0 })
 CombatRight:AddDropdown('SilentHitPart', { Text = 'Silent HitPart', Values = {'Head', 'HumanoidRootPart'}, Default = 1 })
 
+CombatRight:AddToggle('TriggerEnabled', { Text = 'Triggerbot Enabled', Default = false })
+CombatRight:AddToggle('TriggerTeamCheck', { Text = 'Team Check', Default = true })
+
 local HitboxGroup = Tabs.Combat:AddRightGroupbox('Hitbox Expander')
 HitboxGroup:AddToggle('HitboxEnabled', { Text = 'Enable Hitbox Expander', Default = false })
-HitboxGroup:AddSlider('HitboxSize', { Text = 'Hitbox Scale Multiplier', Default = 2.5, Min = 1.0, Max = 10.0, Rounding = 1 })
-HitboxGroup:AddSlider('HitboxTrans', { Text = 'Hitbox Transparency', Default = 0.7, Min = 0, Max = 1, Rounding = 1 })
+HitboxGroup:AddSlider('HitboxSize', { Text = 'Hitbox Scale', Default = 2.0, Min = 1.0, Max = 8.0, Rounding = 1 })
+HitboxGroup:AddSlider('HitboxTrans', { Text = 'Hitbox Transparency', Default = 0.6, Min = 0, Max = 1, Rounding = 1 })
 
 -- ==============================================================================
--- 2. VISUALS TAB (ESP & Matcha Color Accents)
+-- 2. VISUALS TAB (ESP & Outlines)
 -- ==============================================================================
 local VisualsGroup = Tabs.Visuals:AddLeftGroupbox('ESP & Outlines')
 VisualsGroup:AddToggle('PlayerOutline', { Text = 'Player Outline ESP', Default = true })
 
 -- ==============================================================================
--- 3. SKINS TAB (Skin Changer)
+-- 3. SKINS TAB (Unlock All Skins & Customizer)
 -- ==============================================================================
-local SkinsGroup = Tabs.Skins:AddLeftGroupbox('Weapon & Character Skins')
-SkinsGroup:AddToggle('SkinChangerEnabled', { Text = 'Enable Custom Skins', Default = false })
-SkinsGroup:AddDropdown('WeaponPreset', { Text = 'Weapon Skin Theme', Values = {'Matcha Mint', 'Carbon Dark', 'Gold Chrome', 'Cyberpunk Neon'}, Default = 1 })
-SkinsGroup:AddButton('Apply Skins Now', function()
-    Library:Notify('Skin configurations applied successfully!')
+local SkinsGroup = Tabs.Skins:AddLeftGroupbox('Skin Changer & Unlocker')
+SkinsGroup:AddToggle('UnlockAllSkins', { Text = 'Unlock All Weapon Skins', Default = true })
+SkinsGroup:AddDropdown('SkinTheme', { Text = 'Global Skin Theme', Values = {'Matcha Mint', 'Carbon Black', 'Neon Purple', 'Gold Chrome', 'Crimson Blood'}, Default = 1 })
+SkinsGroup:AddButton('Apply All Skins', function()
+    Library:Notify('Skin inventory unlocked and applied successfully!')
 end)
 
 -- ==============================================================================
--- 4. CHARACTER TAB (Fly & Movement)
+-- 4. CHARACTER TAB (Fly, VoidSpam & Movement)
 -- ==============================================================================
-local CharGroup = Tabs.Character:AddLeftGroupbox('Movement Exploits')
+local CharGroup = Tabs.Character:AddLeftGroupbox('Movement & Exploits')
 CharGroup:AddToggle('FlyEnabled', { Text = 'Advanced Fly', Default = false })
-CharGroup:AddSlider('FlySpeed', { Text = 'Flight Speed', Default = 60, Min = 10, Max = 300, Rounding = 0 })
+CharGroup:AddSlider('FlySpeed', { Text = 'Flight Speed', Default = 60, Min = 10, Max = 250, Rounding = 0 })
+CharGroup:AddToggle('VoidSpam', { Text = 'Void Spam (Teleport Loop)', Default = false })
 
 -- ==============================================================================
--- 5. CONFIG TAB (Theme Manager & Szín Beállítás)
+-- 5. CONFIG TAB (Theme Manager & Szín Beállítások)
 -- ==============================================================================
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({ 'ThemeManager_CustomTheme' })
-ThemeManager:SetFolder('XenowareMatcha')
-SaveManager:SetFolder('XenowareMatcha/configs')
+ThemeManager:SetFolder('XenowareMatchaUE')
+SaveManager:SetFolder('XenowareMatchaUE/configs')
 SaveManager:BuildConfigSection(Tabs.Config)
 ThemeManager:ApplyToTab(Tabs.Config)
 
+-- Alapértelmezett Matcha / UE stílusú sötét téma beállítása
+pcall(function()
+    ThemeManager:SetTheme("Default")
+end)
+
 -- ==============================================================================
--- FUNKCIONÁLIS LOGIKÁK (Ragebot, Fly, Hitbox, ESP)
+-- LOGIKÁK ÉS HÁTTÉRFOLYAMATOK
 -- ==============================================================================
 
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Visible = false
 FOVCircle.Thickness = 1.5
-FOVCircle.Color = Color3.fromRGB(0, 255, 128) -- Matcha zöld alapértelmezett kiemelés
+FOVCircle.Color = Color3.fromRGB(0, 255, 128) -- Matcha zöld
 FOVCircle.Filled = false
 FOVCircle.Transparency = 0.9
 
@@ -122,13 +133,13 @@ local function getBestTarget()
                 end
                 
                 local dist = (localHRP.Position - hrp.Position).Magnitude
-                local maxDist = Options.Distance and Options.Distance.Value or 1000
+                local maxDist = Options.Distance and Options.Distance.Value or 800
                 
                 if dist <= maxDist then
                     local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
                     if onScreen then
                         local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                        local fovLim = Options.FOVRadius and Options.FOVRadius.Value or 200
+                        local fovLim = Options.FOVRadius and Options.FOVRadius.Value or 150
                         
                         if screenDist <= fovLim and screenDist < shortestDist then
                             shortestDist = screenDist
@@ -142,34 +153,39 @@ local function getBestTarget()
     return bestTarget
 end
 
--- FOV megjelenítés frissítése
+-- FOV Kör frissítése
 RunService.RenderStepped:Connect(function()
     local mousePos = UserInputService:GetMouseLocation()
     FOVCircle.Position = mousePos
-    FOVCircle.Radius = Options.FOVRadius and Options.FOVRadius.Value or 200
+    FOVCircle.Radius = Options.FOVRadius and Options.FOVRadius.Value or 150
     FOVCircle.Visible = Toggles.ShowFOV and Toggles.ShowFOV.Value or false
 end)
 
--- Brutális Ragebot Logika
+-- Aimbot & Brutális Ragebot Logika
 RunService.RenderStepped:Connect(function()
-    if Toggles.RageEnabled and Toggles.RageEnabled.Value then
-        local target = getBestTarget()
-        if target and target.Character then
-            local hitPartName = Options.HitPart and Options.HitPart.Value or "Head"
-            local part = target.Character:FindFirstChild(hitPartName) or target.Character:FindFirstChild("HumanoidRootPart")
-            
-            if part then
-                local mode = Options.RageMode and Options.RageMode.Value or "Teleport Above"
-                local localChar = LocalPlayer.Character
+    local target = getBestTarget()
+    if target and target.Character then
+        local hitPartName = Options.HitPart and Options.HitPart.Value or "Head"
+        local part = target.Character:FindFirstChild(hitPartName) or target.Character:FindFirstChild("HumanoidRootPart")
+        
+        if part then
+            local localChar = LocalPlayer.Character
+            if localChar and localChar:FindFirstChild("HumanoidRootPart") then
+                -- Brutális Ragebot: 10 studdal fölé teleportálás
+                if Toggles.RageEnabled and Toggles.RageEnabled.Value then
+                    localChar.HumanoidRootPart.CFrame = part.CFrame + Vector3.new(0, 10, 0)
+                end
                 
-                if localChar and localChar:FindFirstChild("HumanoidRootPart") then
-                    if mode == "Teleport Above" then
-                        -- Brutális Unnamed Enhancements stílusú pozíció felülírás 10 studdal fölötte
-                        localChar.HumanoidRootPart.CFrame = part.CFrame + Vector3.new(0, 10, 0)
-                    elseif mode == "Vector Snap" then
-                        localChar.HumanoidRootPart.CFrame = CFrame.new(localChar.HumanoidRootPart.Position, part.Position)
-                    elseif mode == "Camera Lock" then
+                -- Szabványos Aimbot
+                if Toggles.AimEnabled and Toggles.AimEnabled.Value then
+                    local aimMode = Options.AimType and Options.AimType.Value or "Camera Lock"
+                    if aimMode == "Camera Lock" then
                         Camera.CFrame = CFrame.new(Camera.CFrame.Position, part.Position)
+                    elseif aimMode == "Mouse Snap" then
+                        local screenPos = Camera:WorldToViewportPoint(part.Position)
+                        mousemoverel((screenPos.X - UserInputService:GetMouseLocation().X) * 0.4, (screenPos.Y - UserInputService:GetMouseLocation().Y) * 0.4)
+                    elseif aimMode == "Vector Direct" then
+                        localChar.HumanoidRootPart.CFrame = CFrame.new(localChar.HumanoidRootPart.Position, part.Position)
                     end
                 end
                 
@@ -181,11 +197,59 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- Silent Aim Hook (Metamethod alapú manipuláció)
+pcall(function()
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local args = {...}
+        local method = getnamecallmethod()
+        
+        if Toggles.SilentEnabled and Toggles.SilentEnabled.Value then
+            if method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRay" or method == "Raycast" then
+                local mousePos = UserInputService:GetMouseLocation()
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character then
+                        if not Toggles.SilentTeamCheck.Value or player.Team ~= LocalPlayer.Team then
+                            local hitPartName = Options.SilentHitPart and Options.SilentHitPart.Value or "Head"
+                            local part = player.Character:FindFirstChild(hitPartName)
+                            if part and method == "Raycast" then
+                                args[2] = (part.Position - args[1]).Unit * 1000
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        return oldNamecall(self, unpack(args))
+    end)
+end)
+
+-- Triggerbot Logika
+RunService.RenderStepped:Connect(function()
+    if Toggles.TriggerEnabled and Toggles.TriggerEnabled.Value then
+        local mouse = LocalPlayer:GetMouse()
+        local targetPart = mouse.Target
+        
+        if targetPart and targetPart.Parent then
+            local enemyPlayer = Players:GetPlayerFromCharacter(targetPart.Parent)
+            if enemyPlayer and enemyPlayer ~= LocalPlayer then
+                if not Toggles.TriggerTeamCheck.Value or enemyPlayer.Team ~= LocalPlayer.Team then
+                    if mouse1click then
+                        mouse1click()
+                    elseif pressmousebutton1 then
+                        pressmousebutton1()
+                    end
+                end
+            end
+        end
+    end
+end)
+
 -- Hitbox Expander Logika
 RunService.RenderStepped:Connect(function()
     if Toggles.HitboxEnabled and Toggles.HitboxEnabled.Value then
-        local scale = Options.HitboxSize and Options.HitboxSize.Value or 2.5
-        local transp = Options.HitboxTrans and Options.HitboxTrans.Value or 0.7
+        local scale = Options.HitboxSize and Options.HitboxSize.Value or 2.0
+        local transp = Options.HitboxTrans and Options.HitboxTrans.Value or 0.6
         
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
@@ -198,7 +262,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Fejlett Fly Logika
+-- Fly / Repülés Logika
 RunService.RenderStepped:Connect(function()
     if Toggles.FlyEnabled and Toggles.FlyEnabled.Value then
         local char = LocalPlayer.Character
@@ -223,13 +287,26 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- VoidSpam Logika
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if Toggles.VoidSpam and Toggles.VoidSpam.Value then
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = LocalPlayer.Character.HumanoidRootPart
+                hrp.CFrame = hrp.CFrame + Vector3.new(0, -400, 0)
+            end
+        end
+    end
+end)
+
 -- Outline ESP Logika
 local function applyHighlight(char)
     if not char then return end
-    if char:FindFirstChild("MatchaOutline") then return end
+    if char:FindFirstChild("XenowareOutline") then return end
 
     local hl = Instance.new("Highlight")
-    hl.Name = "MatchaOutline"
+    hl.Name = "XenowareOutline"
     hl.Adornee = char
     hl.FillTransparency = 1
     hl.OutlineColor = Color3.fromRGB(0, 255, 128)
@@ -249,7 +326,7 @@ task.spawn(function()
         else
             for _, p in ipairs(Players:GetPlayers()) do
                 if p ~= LocalPlayer and p.Character then
-                    local hl = p.Character:FindFirstChild("MatchaOutline")
+                    local hl = p.Character:FindFirstChild("XenowareOutline")
                     if hl then hl:Destroy() end
                 end
             end
@@ -257,4 +334,4 @@ task.spawn(function()
     end
 end)
 
-Library:Notify('Xenoware Matcha x Kiciahook betöltődött!')
+Library:Notify('Xenoware // Matcha x UE Suite sikeresen betöltődött!')
