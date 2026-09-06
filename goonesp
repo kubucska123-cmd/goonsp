@@ -1,5 +1,5 @@
 -- ==============================================================================
--- Xenoware // Ultimate Keyless Edition (UnnamedCheats Port / Remastered)
+-- Xenoware // Complete Keyless Master Suite (UnnamedCheats / Linoria Port)
 -- ==============================================================================
 
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
@@ -14,9 +14,9 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
 
--- Ablak inicializálása kulcsrendszer nélkül, Xenoware néven
+-- Ablak inicializálása kulcsrendszer nélkül, teljes Xenoware névvel
 local Window = Library:CreateWindow({
-    Title = 'Xenoware // Keyless Edition [Rivals & Universal]',
+    Title = 'Xenoware // Complete Keyless Edition [Rivals & Universal]',
     Center = true,
     AutoShow = true,
     TabPadding = 8,
@@ -48,7 +48,7 @@ CombatLeft:AddSlider('AimSmooth', { Text = 'Aimbot Smoothness', Default = 1, Min
 -- Status kijelző csoport
 local StatusGroup = Tabs.Combat:AddLeftGroupbox('Status & Telemetry')
 local RageStatusLabel = StatusGroup:AddLabel('Ragebot Status: Disabled')
-StatusGroup:AddLabel('Loaded Profile: Xenoware Keyless [Active]')
+StatusGroup:AddLabel('Loaded Profile: Xenoware Master Keyless [Active]')
 
 local CombatRight = Tabs.Combat:AddRightGroupbox('Silent Aim & Triggerbot')
 CombatRight:AddToggle('SilentEnabled', { Text = 'Silent Aim Enabled', Default = false })
@@ -90,7 +90,7 @@ SkinsGroup:AddButton('Apply All Skins & Cosmetics Now', function()
             end
         end
     end)
-    Library:Notify('Xenoware: Minden skin, wrap, charm és finisher feloldva (Keyless)!')
+    Library:Notify('Xenoware: Minden skin, wrap, charm és finisher sikeresen feloldva (Keyless)!')
 end)
 
 -- ==============================================================================
@@ -108,8 +108,8 @@ ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({ 'ThemeManager_CustomTheme' })
-ThemeManager:SetFolder('XenowareKeyless')
-SaveManager:SetFolder('XenowareKeyless/configs')
+ThemeManager:SetFolder('XenowareKeylessFull')
+SaveManager:SetFolder('XenowareKeylessFull/configs')
 SaveManager:BuildConfigSection(Tabs.Config)
 ThemeManager:ApplyToTab(Tabs.Config)
 
@@ -210,7 +210,7 @@ RunService.RenderStepped:Connect(function()
                     end
                 end
                 
-                -- Szabványos Aimbot
+                -- Szabványos Aimbot (Tiszta kamera aimbot)
                 if Toggles.AimEnabled and Toggles.AimEnabled.Value and not rageActive then
                     local targetPos = part.Position
                     local smooth = Options.AimSmooth and Options.AimSmooth.Value or 1
@@ -357,4 +357,4 @@ task.spawn(function()
     end
 end)
 
-Library:Notify('Xenoware // Keyless Edition sikeresen betöltődött!')
+Library:Notify('Xenoware // Complete Keyless Edition betöltődve!')
