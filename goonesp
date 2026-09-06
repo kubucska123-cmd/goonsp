@@ -1,3 +1,7 @@
+-- ==============================================================================
+-- Xenoware - Advanced Combat & Visuals Framework
+-- ==============================================================================
+
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
@@ -5,17 +9,21 @@ local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
 
+-- Ablak létrehozása Xenoware néven
 local Window = Library:CreateWindow({
-    Title = 'Unnamed Enhancements - Ultimate Edition',
+    Title = 'Xenoware - Ultimate Combat Suite',
     Center = true,
     AutoShow = true,
     TabPadding = 8,
     MenuFadeTime = 0.2
 })
 
+-- Fülek definiálása
 local Tabs = {
     Combat = Window:AddTab('Combat'),
     Visuals = Window:AddTab('Visuals'),
@@ -26,9 +34,12 @@ local Tabs = {
     Config = Window:AddTab('Config'),
 }
 
--- 1. COMBAT TAB (Aimbot, Silent Aim, Triggerbot, Ragebot)
-local CombatLeft = Tabs.Combat:AddLeftGroupbox('Rage / Aimbot')
-CombatLeft:AddToggle('RageEnabled', { Text = 'Enabled', Default = false })
+-- ==============================================================================
+-- 1. COMBAT TAB
+-- ==============================================================================
+local CombatLeft = Tabs.Combat:AddLeftGroupbox('Aimbot & Ragebot')
+
+CombatLeft:AddToggle('RageEnabled', { Text = 'Enabled (10 Studs Above)', Default = false })
 CombatLeft:AddToggle('TeamCheck', { Text = 'Team Check', Default = true })
 CombatLeft:AddToggle('VisibleCheck', { Text = 'Visible Check', Default = true })
 CombatLeft:AddToggle('StickyAim', { Text = 'Sticky Aim', Default = false })
@@ -39,84 +50,138 @@ CombatLeft:AddDropdown('HitPart', { Text = 'Hit Part', Values = {'Head', 'Torso'
 CombatLeft:AddDropdown('AimType', { Text = 'Aim Type', Values = {'Mouse', 'Camera', 'Vector'}, Default = 1 })
 
 local CombatRight = Tabs.Combat:AddRightGroupbox('Silent Aim & Triggerbot')
+
 CombatRight:AddToggle('SilentEnabled', { Text = 'Silent Aim Enabled', Default = false })
 CombatRight:AddToggle('SilentTeamCheck', { Text = 'Team Check', Default = true })
 CombatRight:AddToggle('SilentVisibleCheck', { Text = 'Visible Check', Default = true })
 CombatRight:AddSlider('SilentDistance', { Text = 'Distance', Default = 500, Min = 0, Max = 1000, Rounding = 0 })
 CombatRight:AddDropdown('SilentHitPart', { Text = 'Hit Part', Values = {'Head', 'Torso'}, Default = 1 })
 
-CombatRight:AddToggle('TriggerBot', { Text = 'Trigger Bot Enabled', Default = false })
+CombatRight:AddToggle('TriggerBotEnabled', { Text = 'Trigger Bot Enabled', Default = false })
+CombatRight:AddToggle('TriggerTeamCheck', { Text = 'Team Check', Default = true })
 CombatRight:AddSlider('HitboxMul', { Text = 'Hitbox Multiplier', Default = 1.00, Min = 1, Max = 10, Rounding = 2 })
 
--- 2. VISUALS TAB (ESP & Outlines)
+-- ==============================================================================
+-- 2. VISUALS TAB
+-- ==============================================================================
 local VisualsGroup = Tabs.Visuals:AddLeftGroupbox('ESP & Outlines')
 VisualsGroup:AddToggle('PlayerOutline', { Text = 'Player Outline ESP', Default = true })
 
--- 3. CHARACTER TAB (Fly & Exploits)
-local CharGroup = Tabs.Character:AddLeftGroupbox('Movement & Fly')
+-- ==============================================================================
+-- 3. CHARACTER TAB & CONFIG
+-- ==============================================================================
+local CharGroup = Tabs.Character:AddLeftGroupbox('Movement')
 CharGroup:AddToggle('FlyEnabled', { Text = 'Fly (Repülés)', Default = false })
 CharGroup:AddSlider('FlySpeed', { Text = 'Fly Speed', Default = 50, Min = 10, Max = 200, Rounding = 0 })
 
-local ExploitGroup = Tabs.Character:AddRightGroupbox('Exploits')
-ExploitGroup:AddToggle('VoidSpam', { Text = 'Void Spam (Teleport Loop)', Default = false })
-
--- 4. CONFIG TAB
-local ConfigGroup = Tabs.Config:AddLeftGroupbox('Security')
+local ConfigGroup = Tabs.Config:AddLeftGroupbox('Security & Bypass')
 ConfigGroup:AddToggle('AntiBan', { Text = 'Anti-Ban Protection', Default = true })
 
--- --- MŰKÖDŐ LOGIKÁK ---
+-- ==============================================================================
+-- LOGIKÁK ÉS FUNKCIÓK
+-- ==============================================================================
 
--- Fly Logika
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    local localChar = LocalPlayer.Character
+    
+    if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return nil end
+    local localHRP = localChar.HumanoidRootPart
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local humanoid = player.Character:FindFirstChild("Humanoid")
+            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+            
+            if humanoid and humanoid.Health > 0 and hrp then
+                local isTeam = false
+                if Toggles.TeamCheck and Toggles.TeamCheck.Value then
+                    if player.Team == LocalPlayer.Team and player.Team ~= nil then
+                        isTeam = true
+                    end
+                end
+                
+                if not isTeam then
+                    local distance = (localHRP.Position - hrp.Position).Magnitude
+                    local maxDist = Options.Distance and Options.Distance.Value or 500
+                    
+                    if distance < shortestDistance and distance <= maxDist then
+                        shortestDistance = distance
+                        closestPlayer = player
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+-- Ragebot: 10 studdal az ellenfél fölé teleportálás
 RunService.RenderStepped:Connect(function()
-    if Toggles.FlyEnabled and Toggles.FlyEnabled.Value then
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
-            local hrp = char.HumanoidRootPart
-            local cam = workspace.CurrentCamera
-            char.Humanoid.PlatformStand = true
-            
-            local moveDir = Vector3.new()
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
-            
-            local speed = Options.FlySpeed and Options.FlySpeed.Value or 50
-            hrp.Velocity = moveDir * speed
-        else
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("Humanoid") then
-                char.Humanoid.PlatformStand = false
-            end
-        end
-    else
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.PlatformStand = false
-        end
-    end
-end)
-
--- VoidSpam Logika
-task.spawn(function()
-    while true do
-        task.wait(0.05)
-        if Toggles.VoidSpam and Toggles.VoidSpam.Value then
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = LocalPlayer.Character.HumanoidRootPart
-                hrp.CFrame = hrp.CFrame + Vector3.new(0, -300, 0)
+    if Toggles.RageEnabled and Toggles.RageEnabled.Value then
+        local target = getClosestPlayer()
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            local enemyHRP = target.Character.HumanoidRootPart
+            local localChar = LocalPlayer.Character
+            if localChar and localChar:FindFirstChild("HumanoidRootPart") then
+                local targetCFrame = enemyHRP.CFrame + Vector3.new(0, 10, 0)
+                localChar.HumanoidRootPart.CFrame = targetCFrame
             end
         end
     end
 end)
 
--- Fekete Outline ESP Logika
+-- Sticky Aim / Kamera Követés
+RunService.RenderStepped:Connect(function()
+    if Toggles.StickyAim and Toggles.StickyAim.Value then
+        local target = getClosestPlayer()
+        if target and target.Character then
+            local hitPartName = Options.HitPart and Options.HitPart.Value or "Head"
+            local part = target.Character:FindFirstChild(hitPartName) or target.Character:FindFirstChild("HumanoidRootPart")
+            if part then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, part.Position)
+            end
+        end
+    end
+end)
+
+-- Triggerbot
+RunService.RenderStepped:Connect(function()
+    if Toggles.TriggerBotEnabled and Toggles.TriggerBotEnabled.Value then
+        local mouse = LocalPlayer:GetMouse()
+        local targetPart = mouse.Target
+        
+        if targetPart and targetPart.Parent then
+            local enemyPlayer = Players:GetPlayerFromCharacter(targetPart.Parent)
+            if enemyPlayer and enemyPlayer ~= LocalPlayer then
+                local isTeam = false
+                if Toggles.TriggerTeamCheck and Toggles.TriggerTeamCheck.Value then
+                    if enemyPlayer.Team == LocalPlayer.Team and enemyPlayer.Team ~= nil then
+                        isTeam = true
+                    end
+                end
+                
+                if not isTeam then
+                    if mouse1click then
+                        mouse1click()
+                    elseif pressmousebutton1 then
+                        pressmousebutton1()
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Fekete Outline ESP
 local function applyHighlight(char)
     if not char then return end
-    if char:FindFirstChild("XenoOutline") then return end
+    if char:FindFirstChild("XenowareOutline") then return end
 
     local hl = Instance.new("Highlight")
-    hl.Name = "XenoOutline"
+    hl.Name = "XenowareOutline"
     hl.Adornee = char
     hl.FillTransparency = 1
     hl.OutlineColor = Color3.fromRGB(0, 0, 0)
@@ -136,7 +201,7 @@ task.spawn(function()
         else
             for _, p in ipairs(Players:GetPlayers()) do
                 if p ~= LocalPlayer and p.Character then
-                    local hl = p.Character:FindFirstChild("XenoOutline")
+                    local hl = p.Character:FindFirstChild("XenowareOutline")
                     if hl then hl:Destroy() end
                 end
             end
@@ -144,4 +209,34 @@ task.spawn(function()
     end
 end)
 
-Library:Notify('Xenoware Hub sikeresen betöltődött!')
+-- Fly / Repülés
+RunService.RenderStepped:Connect(function()
+    if Toggles.FlyEnabled and Toggles.FlyEnabled.Value then
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+            local hrp = char.HumanoidRootPart
+            char.Humanoid.PlatformStand = true
+            
+            local moveDir = Vector3.new()
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector end
+            
+            local speed = Options.FlySpeed and Options.FlySpeed.Value or 50
+            hrp.Velocity = moveDir * speed
+        else
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.PlatformStand = false
+            end
+        end
+    else
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.PlatformStand = false
+        end
+    end
+end)
+
+Library:Notify('Xenoware sikeresen betöltődött!')
