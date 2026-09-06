@@ -1,5 +1,5 @@
 -- ==============================================================================
--- Xenoware // Ultimate Unified Suite (Matcha x Unnamed Enhancements)
+-- Xenoware // Ultimate Keyless Edition (UnnamedCheats Port / Remastered)
 -- ==============================================================================
 
 local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
@@ -14,9 +14,9 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
 
--- Ablak inicializálása Matcha / UE stílusú sötét / neon dizájnnal
+-- Ablak inicializálása kulcsrendszer nélkül, Xenoware néven
 local Window = Library:CreateWindow({
-    Title = 'Xenoware // Ultimate Edition [Rivals & Universal]',
+    Title = 'Xenoware // Keyless Edition [Rivals & Universal]',
     Center = true,
     AutoShow = true,
     TabPadding = 8,
@@ -45,10 +45,10 @@ CombatLeft:AddToggle('ShowFOV', { Text = 'Show FOV Circle', Default = true })
 CombatLeft:AddDropdown('HitPart', { Text = 'Target HitPart', Values = {'Head', 'HumanoidRootPart', 'Torso'}, Default = 1 })
 CombatLeft:AddSlider('AimSmooth', { Text = 'Aimbot Smoothness', Default = 1, Min = 1, Max = 10, Rounding = 0 })
 
--- Status kijelző csoport a Combat fülön belül a kért infókkal és színekkel
+-- Status kijelző csoport
 local StatusGroup = Tabs.Combat:AddLeftGroupbox('Status & Telemetry')
 local RageStatusLabel = StatusGroup:AddLabel('Ragebot Status: Disabled')
-local ProfileLabel = StatusGroup:AddLabel('Loaded Profile: Xenoware Matcha+UE [Active]')
+StatusGroup:AddLabel('Loaded Profile: Xenoware Keyless [Active]')
 
 local CombatRight = Tabs.Combat:AddRightGroupbox('Silent Aim & Triggerbot')
 CombatRight:AddToggle('SilentEnabled', { Text = 'Silent Aim Enabled', Default = false })
@@ -79,12 +79,10 @@ SkinsGroup:AddToggle('UnlockWraps', { Text = 'Unlock All Weapon Wraps', Default 
 SkinsGroup:AddToggle('UnlockCharms', { Text = 'Unlock All Charms & Keychains', Default = true })
 SkinsGroup:AddToggle('UnlockFinishers', { Text = 'Unlock All Kill Finishers & Charms', Default = true })
 SkinsGroup:AddButton('Apply All Skins & Cosmetics Now', function()
-    -- Teljeskörű kliensoldali inventory / skin override szimuláció
     pcall(function()
         for _, v in pairs(getgc(true)) do
             if typeof(v) == "table" then
                 if rawget(v, "Skins") or rawget(v, "WeaponSkins") or rawget(v, "Wraps") then
-                    -- Ha a játék inventory tábláját eléri, feloldja lokálisan
                     for key, _ in pairs(v) do
                         v[key] = true
                     end
@@ -92,7 +90,7 @@ SkinsGroup:AddButton('Apply All Skins & Cosmetics Now', function()
             end
         end
     end)
-    Library:Notify('Minden skin, wrap, charm és finisher sikeresen feloldva (Client-side)!')
+    Library:Notify('Xenoware: Minden skin, wrap, charm és finisher feloldva (Keyless)!')
 end)
 
 -- ==============================================================================
@@ -110,8 +108,8 @@ ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({ 'ThemeManager_CustomTheme' })
-ThemeManager:SetFolder('XenowareMatchaUE')
-SaveManager:SetFolder('XenowareMatchaUE/configs')
+ThemeManager:SetFolder('XenowareKeyless')
+SaveManager:SetFolder('XenowareKeyless/configs')
 SaveManager:BuildConfigSection(Tabs.Config)
 ThemeManager:ApplyToTab(Tabs.Config)
 
@@ -182,7 +180,6 @@ end)
 RunService.RenderStepped:Connect(function()
     local rageActive = Toggles.RageEnabled and Toggles.RageEnabled.Value
     
-    -- Status kijelző dinamikus frissítése szöveggel és színjelöléssel
     pcall(function()
         if rageActive then
             RageStatusLabel:SetText("Ragebot Status: Enabled [Hovering & Auto-Firing]")
@@ -200,12 +197,11 @@ RunService.RenderStepped:Connect(function()
             local localChar = LocalPlayer.Character
             if localChar and localChar:FindFirstChild("HumanoidRootPart") then
                 
-                -- Ragebot Logika: A skin / karakter az ellenség fölött helyezkedik el, míg a view/kamera szabadon mozoghat és automatikusan tüzel
+                -- Ragebot: Karakter az ellenség fölött lebeg, kamera/view mozog, automatikusan tüzel
                 if rageActive then
                     local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
                     if targetHRP then
                         localChar.HumanoidRootPart.CFrame = targetHRP.CFrame + Vector3.new(0, 6, 0)
-                        -- Automatikus lövés kiváltása
                         if mouse1click then
                             mouse1click()
                         elseif pressmousebutton1 then
@@ -214,7 +210,7 @@ RunService.RenderStepped:Connect(function()
                     end
                 end
                 
-                -- Szabványos Aimbot (Tiszta kamera aimbot, nem mozgatja a fegyvert/karaktert erőszakosan)
+                -- Szabványos Aimbot
                 if Toggles.AimEnabled and Toggles.AimEnabled.Value and not rageActive then
                     local targetPos = part.Position
                     local smooth = Options.AimSmooth and Options.AimSmooth.Value or 1
@@ -225,7 +221,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Silent Aim Hook (Metamethod alapú találat módosítás)
+-- Silent Aim Hook
 pcall(function()
     local oldNamecall
     oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
@@ -361,4 +357,4 @@ task.spawn(function()
     end
 end)
 
-Library:Notify('Xenoware // Matcha x UE Suite sikeresen betöltődött!')
+Library:Notify('Xenoware // Keyless Edition sikeresen betöltődött!')
