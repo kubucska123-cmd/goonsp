@@ -5,9 +5,11 @@ local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local Window = Library:CreateWindow({
-    Title = 'Xenoware Ultimate Hub',
+    Title = 'Unnamed Enhancements - Ultimate Edition',
     Center = true,
     AutoShow = true,
     TabPadding = 8,
@@ -17,29 +19,83 @@ local Window = Library:CreateWindow({
 local Tabs = {
     Combat = Window:AddTab('Combat'),
     Visuals = Window:AddTab('Visuals'),
-    Misc = Window:AddTab('Misc'),
+    World = Window:AddTab('World'),
+    Character = Window:AddTab('Character'),
+    Players = Window:AddTab('Players'),
+    Servers = Window:AddTab('Servers'),
     Config = Window:AddTab('Config'),
 }
 
--- Combat Tab
-local CombatLeft = Tabs.Combat:AddLeftGroupbox('Rage & Aimbot')
-CombatLeft:AddToggle('RageEnabled', { Text = 'Ragebot Enabled', Default = false })
+-- 1. COMBAT TAB (Aimbot, Silent Aim, Triggerbot, Ragebot)
+local CombatLeft = Tabs.Combat:AddLeftGroupbox('Rage / Aimbot')
+CombatLeft:AddToggle('RageEnabled', { Text = 'Enabled', Default = false })
 CombatLeft:AddToggle('TeamCheck', { Text = 'Team Check', Default = true })
 CombatLeft:AddToggle('VisibleCheck', { Text = 'Visible Check', Default = true })
+CombatLeft:AddToggle('StickyAim', { Text = 'Sticky Aim', Default = false })
+CombatLeft:AddSlider('Distance', { Text = 'Distance', Default = 500, Min = 0, Max = 1000, Rounding = 0 })
 CombatLeft:AddSlider('FOVRadius', { Text = 'FOV Radius', Default = 120, Min = 10, Max = 500, Rounding = 0 })
+CombatLeft:AddToggle('ShowFOV', { Text = 'Show FOV Circle', Default = false })
+CombatLeft:AddDropdown('HitPart', { Text = 'Hit Part', Values = {'Head', 'Torso', 'HumanoidRootPart'}, Default = 1 })
+CombatLeft:AddDropdown('AimType', { Text = 'Aim Type', Values = {'Mouse', 'Camera', 'Vector'}, Default = 1 })
 
-local CombatRight = Tabs.Combat:AddRightGroupbox('Silent Aim & Exploits')
+local CombatRight = Tabs.Combat:AddRightGroupbox('Silent Aim & Triggerbot')
 CombatRight:AddToggle('SilentEnabled', { Text = 'Silent Aim Enabled', Default = false })
-CombatRight:AddSlider('HitboxMul', { Text = 'Hitbox Multiplier', Default = 1.00, Min = 1, Max = 5, Rounding = 2 })
-CombatRight:AddToggle('VoidSpam', { Text = 'Void Spam (Teleport Loop)', Default = false })
+CombatRight:AddToggle('SilentTeamCheck', { Text = 'Team Check', Default = true })
+CombatRight:AddToggle('SilentVisibleCheck', { Text = 'Visible Check', Default = true })
+CombatRight:AddSlider('SilentDistance', { Text = 'Distance', Default = 500, Min = 0, Max = 1000, Rounding = 0 })
+CombatRight:AddDropdown('SilentHitPart', { Text = 'Hit Part', Values = {'Head', 'Torso'}, Default = 1 })
 
--- Visuals Tab
-local VisualsGroup = Tabs.Visuals:AddLeftGroupbox('ESP & Visuals')
+CombatRight:AddToggle('TriggerBot', { Text = 'Trigger Bot Enabled', Default = false })
+CombatRight:AddSlider('HitboxMul', { Text = 'Hitbox Multiplier', Default = 1.00, Min = 1, Max = 10, Rounding = 2 })
+
+-- 2. VISUALS TAB (ESP & Outlines)
+local VisualsGroup = Tabs.Visuals:AddLeftGroupbox('ESP & Outlines')
 VisualsGroup:AddToggle('PlayerOutline', { Text = 'Player Outline ESP', Default = true })
 
--- Config Tab
-local ConfigGroup = Tabs.Config:AddLeftGroupbox('Security & Bypass')
+-- 3. CHARACTER TAB (Fly & Exploits)
+local CharGroup = Tabs.Character:AddLeftGroupbox('Movement & Fly')
+CharGroup:AddToggle('FlyEnabled', { Text = 'Fly (Repülés)', Default = false })
+CharGroup:AddSlider('FlySpeed', { Text = 'Fly Speed', Default = 50, Min = 10, Max = 200, Rounding = 0 })
+
+local ExploitGroup = Tabs.Character:AddRightGroupbox('Exploits')
+ExploitGroup:AddToggle('VoidSpam', { Text = 'Void Spam (Teleport Loop)', Default = false })
+
+-- 4. CONFIG TAB
+local ConfigGroup = Tabs.Config:AddLeftGroupbox('Security')
 ConfigGroup:AddToggle('AntiBan', { Text = 'Anti-Ban Protection', Default = true })
+
+-- --- MŰKÖDŐ LOGIKÁK ---
+
+-- Fly Logika
+RunService.RenderStepped:Connect(function()
+    if Toggles.FlyEnabled and Toggles.FlyEnabled.Value then
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+            local hrp = char.HumanoidRootPart
+            local cam = workspace.CurrentCamera
+            char.Humanoid.PlatformStand = true
+            
+            local moveDir = Vector3.new()
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
+            
+            local speed = Options.FlySpeed and Options.FlySpeed.Value or 50
+            hrp.Velocity = moveDir * speed
+        else
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.PlatformStand = false
+            end
+        end
+    else
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.PlatformStand = false
+        end
+    end
+end)
 
 -- VoidSpam Logika
 task.spawn(function()
@@ -54,7 +110,7 @@ task.spawn(function()
     end
 end)
 
--- Outline ESP Logika
+-- Fekete Outline ESP Logika
 local function applyHighlight(char)
     if not char then return end
     if char:FindFirstChild("XenoOutline") then return end
