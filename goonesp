@@ -7,7 +7,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local Window = Library:CreateWindow({
-    Title = 'Unnamed Enhancements - Rivals Edition',
+    Title = 'Xenoware Ultimate Hub',
     Center = true,
     AutoShow = true,
     TabPadding = 8,
@@ -17,41 +17,50 @@ local Window = Library:CreateWindow({
 local Tabs = {
     Combat = Window:AddTab('Combat'),
     Visuals = Window:AddTab('Visuals'),
-    World = Window:AddTab('World'),
-    Character = Window:AddTab('Character'),
-    Players = Window:AddTab('Players'),
-    Servers = Window:AddTab('Servers'),
+    Misc = Window:AddTab('Misc'),
     Config = Window:AddTab('Config'),
 }
 
 -- Combat Tab
-local CombatLeft = Tabs.Combat:AddLeftGroupbox('Ragebot')
-CombatLeft:AddToggle('RageEnabled', { Text = 'Enabled', Default = false })
+local CombatLeft = Tabs.Combat:AddLeftGroupbox('Rage & Aimbot')
+CombatLeft:AddToggle('RageEnabled', { Text = 'Ragebot Enabled', Default = false })
 CombatLeft:AddToggle('TeamCheck', { Text = 'Team Check', Default = true })
 CombatLeft:AddToggle('VisibleCheck', { Text = 'Visible Check', Default = true })
-CombatLeft:AddSlider('Distance', { Text = 'Distance', Default = 500, Min = 0, Max = 1000, Rounding = 0 })
 CombatLeft:AddSlider('FOVRadius', { Text = 'FOV Radius', Default = 120, Min = 10, Max = 500, Rounding = 0 })
 
 local CombatRight = Tabs.Combat:AddRightGroupbox('Silent Aim & Exploits')
-CombatRight:AddToggle('SilentEnabled', { Text = 'Enabled', Default = false })
-CombatRight:AddSlider('HitboxMul', { Text = 'Hitbox Mul', Default = 1.00, Min = 1, Max = 5, Rounding = 2 })
+CombatRight:AddToggle('SilentEnabled', { Text = 'Silent Aim Enabled', Default = false })
+CombatRight:AddSlider('HitboxMul', { Text = 'Hitbox Multiplier', Default = 1.00, Min = 1, Max = 5, Rounding = 2 })
 CombatRight:AddToggle('VoidSpam', { Text = 'Void Spam (Teleport Loop)', Default = false })
 
--- Visuals Tab (Működő Outline ESP Rivals-hoz)
-local VisualsGroup = Tabs.Visuals:AddLeftGroupbox('ESP & Outlines')
+-- Visuals Tab
+local VisualsGroup = Tabs.Visuals:AddLeftGroupbox('ESP & Visuals')
 VisualsGroup:AddToggle('PlayerOutline', { Text = 'Player Outline ESP', Default = true })
 
 -- Config Tab
 local ConfigGroup = Tabs.Config:AddLeftGroupbox('Security & Bypass')
 ConfigGroup:AddToggle('AntiBan', { Text = 'Anti-Ban Protection', Default = true })
 
--- Működő Outline ESP logika Rivals karakterekre
+-- VoidSpam Logika
+task.spawn(function()
+    while true do
+        task.wait(0.05)
+        if Toggles.VoidSpam and Toggles.VoidSpam.Value then
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = LocalPlayer.Character.HumanoidRootPart
+                hrp.CFrame = hrp.CFrame + Vector3.new(0, -300, 0)
+            end
+        end
+    end
+end)
+
+-- Outline ESP Logika
 local function applyHighlight(char)
     if not char then return end
-    if char:FindFirstChild("RivalsOutline") then return end
+    if char:FindFirstChild("XenoOutline") then return end
 
     local hl = Instance.new("Highlight")
-    hl.Name = "RivalsOutline"
+    hl.Name = "XenoOutline"
     hl.Adornee = char
     hl.FillTransparency = 1
     hl.OutlineColor = Color3.fromRGB(0, 0, 0)
@@ -71,7 +80,7 @@ task.spawn(function()
         else
             for _, p in ipairs(Players:GetPlayers()) do
                 if p ~= LocalPlayer and p.Character then
-                    local hl = p.Character:FindFirstChild("RivalsOutline")
+                    local hl = p.Character:FindFirstChild("XenoOutline")
                     if hl then hl:Destroy() end
                 end
             end
@@ -79,17 +88,4 @@ task.spawn(function()
     end
 end)
 
--- VoidSpam logika
-task.spawn(function()
-    while true do
-        task.wait(0.05)
-        if Toggles.VoidSpam and Toggles.VoidSpam.Value then
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = LocalPlayer.Character.HumanoidRootPart
-                hrp.CFrame = hrp.CFrame + Vector3.new(0, -300, 0)
-            end
-        end
-    end
-end)
-
-Library:Notify('A Rivals menü sikeresen betöltődött!')
+Library:Notify('Xenoware Hub sikeresen betöltődött!')
