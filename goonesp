@@ -1,5 +1,5 @@
 -- ==============================================================================
--- voidX // Mobile Suite [Color Changer, Hit Sounds, Anti-Katana, Anti-Aim]
+-- voidX // Ultimate Mobile Mega Suite [Full Features, Noclip, FPS Boost, Watermark]
 -- ==============================================================================
 
 local Players = game:GetService("Players")
@@ -10,20 +10,15 @@ local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
+local Lighting = game:GetService("Lighting")
 
--- Biztonságos GUI szülő keresés
+-- Biztonságos GUI szülő keresés mobilos executorokhoz
 local guiParent = nil
-pcall(function()
-    if gethui then guiParent = gethui() end
-end)
-if not guiParent then
-    pcall(function() guiParent = game:GetService("CoreGui") end)
-end
-if not guiParent then
-    guiParent = LocalPlayer:WaitForChild("PlayerGui")
-end
+pcall(function() if gethui then guiParent = gethui() end end)
+if not guiParent then pcall(function() guiParent = game:GetService("CoreGui") end) end
+if not guiParent then guiParent = LocalPlayer:WaitForChild("PlayerGui") end
 
--- Színpaletták a Color Changerhez
+-- Színpaletták
 local ThemeColors = {
     ["Purple"] = Color3.fromRGB(180, 80, 255),
     ["Neon Green"] = Color3.fromRGB(0, 255, 128),
@@ -43,7 +38,7 @@ local SoundIDs = {
     ["Bell"] = "rbxassetid://6534947240"
 }
 
--- Beállítások és Toggles
+-- Globális Beállítások és Toggles
 getgenv().voidXToggles = {
     AimEnabled = false,
     RageEnabled = false,
@@ -54,10 +49,13 @@ getgenv().voidXToggles = {
     PlayerOutline = true,
     UnlockAll = false,
     FlyEnabled = false,
-    SpoofEnabled = false,
+    NoclipEnabled = false,
+    SpeedEnabled = false,
+    FPSBoostEnabled = false,
     HitSoundsEnabled = false,
     AntiKatanaEnabled = false,
     AntiAimEnabled = false,
+    WatermarkEnabled = true,
 }
 
 getgenv().voidXOptions = {
@@ -66,6 +64,7 @@ getgenv().voidXOptions = {
     Smoothness = 0.2,
     HitPart = "Head",
     FlySpeed = 50,
+    WalkSpeed = 24,
     SelectedTheme = "Purple",
     SelectedHitSound = "Neverlose",
     AntiAimSpeed = 30,
@@ -73,22 +72,25 @@ getgenv().voidXOptions = {
 
 -- Régi GUI törlése
 pcall(function()
-    if guiParent:FindFirstChild("voidXKiciaUI") then
-        guiParent.voidXKiciaUI:Destroy()
+    if guiParent:FindFirstChild("voidXMegaUI") then
+        guiParent.voidXMegaUI:Destroy()
+    end
+    if guiParent:FindFirstChild("voidXWatermark") then
+        guiParent.voidXWatermark:Destroy()
     end
 end)
 
 -- ==============================================================================
--- voidX UI (DYNAMIC COLOR THEMES)
+-- UI LÉTREHOZÁSA (KICIAHOOK STÍLUSÚ LILA / NEON DESIGN)
 -- ==============================================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "voidXKiciaUI"
+ScreenGui.Name = "voidXMegaUI"
 ScreenGui.Parent = guiParent
 ScreenGui.ResetOnSpawn = false
 
 local AccentColor = ThemeColors[getgenv().voidXOptions.SelectedTheme]
 
--- Értesítő toast
+-- Értesítő Toast
 local NotifFrame = Instance.new("Frame")
 NotifFrame.Name = "Notification"
 NotifFrame.Parent = ScreenGui
@@ -110,7 +112,7 @@ NotifLabel.Size = UDim2.new(1, 0, 1, 0)
 NotifLabel.Font = Enum.Font.GothamBold
 NotifLabel.TextColor3 = AccentColor
 NotifLabel.TextSize = 11
-NotifLabel.Text = "voidX Advanced Loaded!"
+NotifLabel.Text = "voidX Mega Suite Loaded!"
 
 local function Notify(txt)
     pcall(function()
@@ -128,6 +130,45 @@ local function Notify(txt)
         end)
     end)
 end
+
+-- Élő Watermark HUD
+local Watermark = Instance.new("TextLabel")
+Watermark.Name = "voidXWatermark"
+Watermark.Parent = ScreenGui
+Watermark.BackgroundColor3 = Color3.fromRGB(12, 10, 18)
+Watermark.BorderColor3 = AccentColor
+Watermark.BorderSizePixel = 1
+Watermark.Position = UDim2.new(0, 15, 0, 15)
+Watermark.Size = UDim2.new(0, 180, 0, 28)
+Watermark.Font = Enum.Font.GothamBold
+Watermark.Text = " voidX // Rivals | 60 FPS"
+Watermark.TextColor3 = AccentColor
+Watermark.TextSize = 11
+Watermark.TextXAlignment = Enum.TextXAlignment.Left
+
+local WmCorner = Instance.new("UICorner")
+WmCorner.CornerRadius = UDim.new(0, 6)
+WmCorner.Parent = Watermark
+
+-- FPS és Ping számláló loop
+task.spawn(function()
+    local lastTick = tick()
+    local frames = 0
+    RunService.RenderStepped:Connect(function()
+        frames = frames + 1
+        if tick() - lastTick >= 1 then
+            local fps = math.floor(frames / (tick() - lastTick))
+            if getgenv().voidXToggles.WatermarkEnabled then
+                Watermark.Text = " voidX // Rivals | " .. fps .. " FPS"
+                Watermark.Visible = true
+            else
+                Watermark.Visible = false
+            end
+            frames = 0
+            lastTick = tick()
+        end
+    end)
+end)
 
 -- FOV Kör
 local FOVFrame = Instance.new("Frame")
@@ -155,7 +196,7 @@ ToggleButton.Parent = ScreenGui
 ToggleButton.BackgroundColor3 = Color3.fromRGB(15, 12, 22)
 ToggleButton.BorderColor3 = AccentColor
 ToggleButton.BorderSizePixel = 2
-ToggleButton.Position = UDim2.new(0, 15, 0, 70)
+ToggleButton.Position = UDim2.new(0, 15, 0, 120)
 ToggleButton.Size = UDim2.new(0, 125, 0, 40)
 ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.Text = "🐾 voidX"
@@ -173,8 +214,8 @@ MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 10, 18)
 MainFrame.BorderColor3 = AccentColor
 MainFrame.BorderSizePixel = 1
-MainFrame.Position = UDim2.new(0.5, -165, 0.5, -195)
-MainFrame.Size = UDim2.new(0, 330, 0, 390)
+MainFrame.Position = UDim2.new(0.5, -170, 0.5, -210)
+MainFrame.Size = UDim2.new(0, 340, 0, 420)
 MainFrame.Visible = true
 
 local MainCorner = Instance.new("UICorner")
@@ -197,7 +238,7 @@ TitleLabel.BackgroundTransparency = 1
 TitleLabel.Position = UDim2.new(0, 10, 0, 0)
 TitleLabel.Size = UDim2.new(1, -45, 1, 0)
 TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.Text = "voidX // Advanced Suite"
+TitleLabel.Text = "voidX // Mega Suite"
 TitleLabel.TextColor3 = AccentColor
 TitleLabel.TextSize = 12
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -218,11 +259,13 @@ CloseCorner.Parent = CloseBtn
 CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 
--- Dinamikus Téma / Színfrissítő
+-- Téma frissítő függvény
 local function UpdateThemeColor(newColor)
     AccentColor = newColor
     NotifFrame.BorderColor3 = AccentColor
     NotifLabel.TextColor3 = AccentColor
+    Watermark.BorderColor3 = AccentColor
+    Watermark.TextColor3 = AccentColor
     FOVStroke.Color = AccentColor
     ToggleButton.BorderColor3 = AccentColor
     ToggleButton.TextColor3 = AccentColor
@@ -230,7 +273,7 @@ local function UpdateThemeColor(newColor)
     TitleLabel.TextColor3 = AccentColor
 end
 
--- Tab Bar
+-- Tab Bar (5 fül: Combat, Visuals, Skins, Movement, Misc)
 local TabBar = Instance.new("Frame")
 TabBar.Parent = MainFrame
 TabBar.BackgroundTransparency = 1
@@ -241,9 +284,9 @@ local TabListLayout = Instance.new("UIListLayout")
 TabListLayout.Parent = TabBar
 TabListLayout.FillDirection = Enum.FillDirection.Horizontal
 TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-TabListLayout.Padding = UDim.new(0, 4)
+TabListLayout.Padding = UDim.new(0, 3)
 
-local tabs = {"Combat", "Visuals", "Skins", "Misc"}
+local tabs = {"Combat", "Visuals", "Skins", "Move", "Misc"}
 local contentFrames = {}
 local tabButtons = {}
 
@@ -253,11 +296,11 @@ for i, tabName in ipairs(tabs) do
     tabBtn.BackgroundColor3 = (i == 1) and Color3.fromRGB(45, 18, 65) or Color3.fromRGB(20, 16, 28)
     tabBtn.BorderColor3 = (i == 1) and AccentColor or Color3.fromRGB(40, 30, 55)
     tabBtn.BorderSizePixel = 1
-    tabBtn.Size = UDim2.new(0.238, 0, 1, 0)
+    tabBtn.Size = UDim2.new(0.192, 0, 1, 0)
     tabBtn.Font = Enum.Font.GothamBold
     tabBtn.Text = tabName
     tabBtn.TextColor3 = (i == 1) and AccentColor or Color3.fromRGB(150, 130, 170)
-    tabBtn.TextSize = 10
+    tabBtn.TextSize = 9
 
     local tabCorner = Instance.new("UICorner")
     tabCorner.CornerRadius = UDim.new(0, 5)
@@ -270,7 +313,7 @@ for i, tabName in ipairs(tabs) do
     cFrame.BackgroundTransparency = 1
     cFrame.Position = UDim2.new(0, 8, 0, 74)
     cFrame.Size = UDim2.new(1, -16, 1, -82)
-    cFrame.CanvasSize = UDim2.new(0, 0, 0, 520)
+    cFrame.CanvasSize = UDim2.new(0, 0, 0, 560)
     cFrame.ScrollBarThickness = 2
     cFrame.Visible = (i == 1)
     
@@ -296,7 +339,7 @@ for i, tabName in ipairs(tabs) do
     end)
 end
 
--- UI Segédfüggvények
+-- UI Elemek Generálása
 local function AddToggle(tabName, text, toggleKey)
     local parent = contentFrames[tabName]
     if not parent then return end
@@ -383,7 +426,7 @@ local function AddActionButton(tabName, text, callback)
 end
 
 -- ==============================================================================
--- UJ FUNKCIOK BEALLITASA
+-- MENÜ PONTOK FELÉPÍTÉSE
 -- ==============================================================================
 
 -- COMBAT
@@ -400,6 +443,7 @@ AddToggle("Combat", "Anti-Katana (Melee Avoid)", "AntiKatanaEnabled")
 -- VISUALS
 AddToggle("Visuals", "Player Outline ESP", "PlayerOutline")
 AddToggle("Visuals", "Draw FOV Circle", "ShowFOV")
+AddToggle("Visuals", "Watermark HUD Display", "WatermarkEnabled")
 AddButtonOption("Visuals", "UI Color Theme", {"Purple", "Neon Green", "Cyan", "Red", "Yellow", "Pink"}, "SelectedTheme", function(val)
     if ThemeColors[val] then
         UpdateThemeColor(ThemeColors[val])
@@ -426,13 +470,21 @@ AddActionButton("Skins", "Unlock All Weapon Skins & Wraps", function()
 end)
 AddToggle("Skins", "Auto Skin Override Loop", "UnlockAll")
 
+-- MOVEMENT (MOVE FÜL)
+AddToggle("Move", "Advanced Fly", "FlyEnabled")
+AddToggle("Move", "Noclip (Walk Through Walls)", "NoclipEnabled")
+AddToggle("Move", "Custom Speedhack", "SpeedEnabled")
+AddButtonOption("Move", "WalkSpeed Multiplier", {16, 24, 32, 50, 80}, "WalkSpeed", function(val)
+    getgenv().voidXOptions.WalkSpeed = val
+end)
+
 -- MISC
 AddToggle("Misc", "Hit Sounds Effect", "HitSoundsEnabled")
 AddButtonOption("Misc", "Hit Sound Type", {"Neverlose", "Gamesense", "Rust", "Minecraft", "Hitmarker", "Bell"}, "SelectedHitSound")
-AddToggle("Misc", "Advanced Fly", "FlyEnabled")
+AddToggle("Misc", "FPS Booster (Graphics Optimizer)", "FPSBoostEnabled")
 AddToggle("Misc", "Platform Device Spoofer", "SpoofEnabled")
 
--- Dragging
+-- Mozgathatóság
 local function makeDraggable(guiObject)
     local dragging, dragInput, dragStart, startPos
     guiObject.InputBegan:Connect(function(input)
@@ -457,18 +509,17 @@ end
 
 makeDraggable(MainFrame)
 makeDraggable(ToggleButton)
+makeDraggable(Watermark)
 
 -- ==============================================================================
--- LOGIKA ES HATTE RFOLYAMATOK
+-- HÁTTÉRFOLYAMATok ÉS LOGIKA
 -- ==============================================================================
 
--- Hit Sound Player
 local function PlayHitSound()
     if not getgenv().voidXToggles.HitSoundsEnabled then return end
     pcall(function()
         local soundName = getgenv().voidXOptions.SelectedHitSound
         local soundId = SoundIDs[soundName] or SoundIDs["Neverlose"]
-        
         local sound = Instance.new("Sound")
         sound.SoundId = soundId
         sound.Volume = 2
@@ -525,7 +576,7 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
--- Aimbot & Ragebot & HitSound Trigger
+-- Aimbot & Ragebot
 RunService.RenderStepped:Connect(function()
     pcall(function()
         local toggles = getgenv().voidXToggles
@@ -559,7 +610,53 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
--- Anti-Katana (Melee Avoidance)
+-- Noclip Logika
+RunService.Stepped:Connect(function()
+    pcall(function()
+        if getgenv().voidXToggles.NoclipEnabled and LocalPlayer.Character then
+            for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+end)
+
+-- Speedhack Logika
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+        if getgenv().voidXToggles.SpeedEnabled and LocalPlayer.Character then
+            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = getgenv().voidXOptions.WalkSpeed
+            end
+        end
+    end)
+end)
+
+-- FPS Booster / Grafika Optimalizáló
+task.spawn(function()
+    while true do
+        task.wait(1)
+        pcall(function()
+            if getgenv().voidXToggles.FPSBoostEnabled then
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 999999
+                for _, v in ipairs(Workspace:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.Material = Enum.Material.SmoothPlastic
+                        v.Reflectance = 0
+                    elseif v:IsA("Decal") or v:IsA("Texture") then
+                        v.Transparency = 1
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- Anti-Katana
 RunService.RenderStepped:Connect(function()
     pcall(function()
         if not getgenv().voidXToggles.AntiKatanaEnabled then return end
@@ -573,11 +670,11 @@ RunService.RenderStepped:Connect(function()
                 local hrp = player.Character:FindFirstChild("HumanoidRootPart")
                 if hrp and tool then
                     local toolName = tool.Name:lower()
-                    if toolName:find("katana") or toolName:find("sword") or toolName:find("blade") or toolName:find("knife") or toolName:find("scythe") then
+                    if toolName:find("katana") or toolName:find("sword") or toolName:find("blade") or toolName:find("knife") then
                         local dist = (localHRP.Position - hrp.Position).Magnitude
-                        if dist < 12 then -- Ha 12 studon belül van katanával
-                            local escapeDirection = (localHRP.Position - hrp.Position).Unit
-                            localHRP.CFrame = localHRP.CFrame + (escapeDirection * 15) -- Elugrik tőle
+                        if dist < 14 then
+                            local escapeDir = (localHRP.Position - hrp.Position).Unit
+                            localHRP.CFrame = localHRP.CFrame + (escapeDir * 18)
                         end
                     end
                 end
@@ -586,7 +683,7 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
--- Anti-Aim (Spinbot Yaw)
+-- Anti-Aim Spinbot
 local spinAngle = 0
 RunService.RenderStepped:Connect(function()
     pcall(function()
@@ -694,4 +791,4 @@ RunService.RenderStepped:Connect(function()
     end)
 end)
 
-Notify("voidX Advanced Loaded!")
+Notify("voidX Mega Suite Successfully Loaded!")
