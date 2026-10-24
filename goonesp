@@ -1,11 +1,6 @@
 -- ==============================================================================
--- Xenoware // Complete Keyless Master Suite (UnnamedCheats / Linoria Port)
+-- voidX // Mobile Suite [Color Changer, Hit Sounds, Anti-Katana, Anti-Aim]
 -- ==============================================================================
-
-local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
-local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
-local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
-local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -13,120 +8,475 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
+local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
 
--- Ablak inicializálása kulcsrendszer nélkül, teljes Xenoware névvel
-local Window = Library:CreateWindow({
-    Title = 'Xenoware // Complete Keyless Edition [Rivals & Universal]',
-    Center = true,
-    AutoShow = true,
-    TabPadding = 8,
-    MenuFadeTime = 0.2
-})
+-- Biztonságos GUI szülő keresés
+local guiParent = nil
+pcall(function()
+    if gethui then guiParent = gethui() end
+end)
+if not guiParent then
+    pcall(function() guiParent = game:GetService("CoreGui") end)
+end
+if not guiParent then
+    guiParent = LocalPlayer:WaitForChild("PlayerGui")
+end
 
-local Tabs = {
-    Combat = Window:AddTab('Combat'),
-    Visuals = Window:AddTab('Visuals'),
-    Skins = Window:AddTab('Skins'),
-    Character = Window:AddTab('Character'),
-    Config = Window:AddTab('Config'),
+-- Színpaletták a Color Changerhez
+local ThemeColors = {
+    ["Purple"] = Color3.fromRGB(180, 80, 255),
+    ["Neon Green"] = Color3.fromRGB(0, 255, 128),
+    ["Cyan"] = Color3.fromRGB(0, 220, 255),
+    ["Red"] = Color3.fromRGB(255, 50, 80),
+    ["Yellow"] = Color3.fromRGB(255, 220, 0),
+    ["Pink"] = Color3.fromRGB(255, 100, 200)
 }
 
--- ==============================================================================
--- 1. COMBAT TAB (Aimbot, Ragebot, Silent Aim, Triggerbot, Hitbox)
--- ==============================================================================
-local CombatLeft = Tabs.Combat:AddLeftGroupbox('Aimbot & Ragebot')
-CombatLeft:AddToggle('AimEnabled', { Text = 'Aimbot Enabled (Camera Lock)', Default = false })
-CombatLeft:AddToggle('RageEnabled', { Text = 'Ragebot (Above Target Hover + AutoFire)', Default = false })
-CombatLeft:AddToggle('TeamCheck', { Text = 'Team Check', Default = true })
-CombatLeft:AddToggle('VisibleCheck', { Text = 'Visible Check', Default = true })
-CombatLeft:AddSlider('Distance', { Text = 'Max Distance', Default = 800, Min = 50, Max = 2000, Rounding = 0 })
-CombatLeft:AddSlider('FOVRadius', { Text = 'FOV Radius', Default = 150, Min = 10, Max = 600, Rounding = 0 })
-CombatLeft:AddToggle('ShowFOV', { Text = 'Show FOV Circle', Default = true })
-CombatLeft:AddDropdown('HitPart', { Text = 'Target HitPart', Values = {'Head', 'HumanoidRootPart', 'Torso'}, Default = 1 })
-CombatLeft:AddSlider('AimSmooth', { Text = 'Aimbot Smoothness', Default = 1, Min = 1, Max = 10, Rounding = 0 })
+-- Hit Sound azonosítók
+local SoundIDs = {
+    ["Neverlose"] = "rbxassetid://8632670510",
+    ["Gamesense"] = "rbxassetid://4817809188",
+    ["Rust"] = "rbxassetid://1255040462",
+    ["Minecraft"] = "rbxassetid://4018616850",
+    ["Hitmarker"] = "rbxassetid://160432334",
+    ["Bell"] = "rbxassetid://6534947240"
+}
 
--- Status kijelző csoport
-local StatusGroup = Tabs.Combat:AddLeftGroupbox('Status & Telemetry')
-local RageStatusLabel = StatusGroup:AddLabel('Ragebot Status: Disabled')
-StatusGroup:AddLabel('Loaded Profile: Xenoware Master Keyless [Active]')
+-- Beállítások és Toggles
+getgenv().voidXToggles = {
+    AimEnabled = false,
+    RageEnabled = false,
+    TeamCheck = true,
+    ShowFOV = true,
+    VoidSpam = false,
+    HitboxEnabled = false,
+    PlayerOutline = true,
+    UnlockAll = false,
+    FlyEnabled = false,
+    SpoofEnabled = false,
+    HitSoundsEnabled = false,
+    AntiKatanaEnabled = false,
+    AntiAimEnabled = false,
+}
 
-local CombatRight = Tabs.Combat:AddRightGroupbox('Silent Aim & Triggerbot')
-CombatRight:AddToggle('SilentEnabled', { Text = 'Silent Aim Enabled', Default = false })
-CombatRight:AddToggle('SilentTeamCheck', { Text = 'Team Check', Default = true })
-CombatRight:AddSlider('SilentDist', { Text = 'Silent Distance', Default = 1000, Min = 100, Max = 3000, Rounding = 0 })
-CombatRight:AddDropdown('SilentHitPart', { Text = 'Silent HitPart', Values = {'Head', 'HumanoidRootPart'}, Default = 1 })
+getgenv().voidXOptions = {
+    Distance = 1000,
+    FOVRadius = 140,
+    Smoothness = 0.2,
+    HitPart = "Head",
+    FlySpeed = 50,
+    SelectedTheme = "Purple",
+    SelectedHitSound = "Neverlose",
+    AntiAimSpeed = 30,
+}
 
-CombatRight:AddToggle('TriggerEnabled', { Text = 'Triggerbot Enabled', Default = false })
-CombatRight:AddToggle('TriggerTeamCheck', { Text = 'Team Check', Default = true })
-
-local HitboxGroup = Tabs.Combat:AddRightGroupbox('Hitbox Expander')
-HitboxGroup:AddToggle('HitboxEnabled', { Text = 'Enable Hitbox Expander', Default = false })
-HitboxGroup:AddSlider('HitboxSize', { Text = 'Hitbox Scale', Default = 2.0, Min = 1.0, Max = 8.0, Rounding = 1 })
-HitboxGroup:AddSlider('HitboxTrans', { Text = 'Hitbox Transparency', Default = 0.6, Min = 0, Max = 1, Rounding = 1 })
+-- Régi GUI törlése
+pcall(function()
+    if guiParent:FindFirstChild("voidXKiciaUI") then
+        guiParent.voidXKiciaUI:Destroy()
+    end
+end)
 
 -- ==============================================================================
--- 2. VISUALS TAB (ESP & Outlines)
+-- voidX UI (DYNAMIC COLOR THEMES)
 -- ==============================================================================
-local VisualsGroup = Tabs.Visuals:AddLeftGroupbox('ESP & Outlines')
-VisualsGroup:AddToggle('PlayerOutline', { Text = 'Player Outline ESP', Default = true })
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "voidXKiciaUI"
+ScreenGui.Parent = guiParent
+ScreenGui.ResetOnSpawn = false
 
--- ==============================================================================
--- 3. SKINS TAB (Unlock All Skins, Wraps, Charms, Finishers - Client-side)
--- ==============================================================================
-local SkinsGroup = Tabs.Skins:AddLeftGroupbox('Client Skin & Cosmetics Unlocker')
-SkinsGroup:AddToggle('UnlockAllSkins', { Text = 'Unlock All Weapon Skins', Default = true })
-SkinsGroup:AddToggle('UnlockWraps', { Text = 'Unlock All Weapon Wraps', Default = true })
-SkinsGroup:AddToggle('UnlockCharms', { Text = 'Unlock All Charms & Keychains', Default = true })
-SkinsGroup:AddToggle('UnlockFinishers', { Text = 'Unlock All Kill Finishers & Charms', Default = true })
-SkinsGroup:AddButton('Apply All Skins & Cosmetics Now', function()
+local AccentColor = ThemeColors[getgenv().voidXOptions.SelectedTheme]
+
+-- Értesítő toast
+local NotifFrame = Instance.new("Frame")
+NotifFrame.Name = "Notification"
+NotifFrame.Parent = ScreenGui
+NotifFrame.BackgroundColor3 = Color3.fromRGB(18, 14, 28)
+NotifFrame.BorderColor3 = AccentColor
+NotifFrame.BorderSizePixel = 1
+NotifFrame.Position = UDim2.new(0.5, -125, 0, -60)
+NotifFrame.Size = UDim2.new(0, 250, 0, 36)
+NotifFrame.Visible = false
+
+local NotifCorner = Instance.new("UICorner")
+NotifCorner.CornerRadius = UDim.new(0, 6)
+NotifCorner.Parent = NotifFrame
+
+local NotifLabel = Instance.new("TextLabel")
+NotifLabel.Parent = NotifFrame
+NotifLabel.BackgroundTransparency = 1
+NotifLabel.Size = UDim2.new(1, 0, 1, 0)
+NotifLabel.Font = Enum.Font.GothamBold
+NotifLabel.TextColor3 = AccentColor
+NotifLabel.TextSize = 11
+NotifLabel.Text = "voidX Advanced Loaded!"
+
+local function Notify(txt)
     pcall(function()
-        for _, v in pairs(getgc(true)) do
-            if typeof(v) == "table" then
-                if rawget(v, "Skins") or rawget(v, "WeaponSkins") or rawget(v, "Wraps") then
-                    for key, _ in pairs(v) do
-                        v[key] = true
+        NotifLabel.Text = txt
+        NotifFrame.Visible = true
+        NotifFrame.Position = UDim2.new(0.5, -125, 0, -60)
+        local twIn = TweenService:Create(NotifFrame, TweenInfo.new(0.25), {Position = UDim2.new(0.5, -125, 0, 20)})
+        twIn:Play()
+        task.spawn(function()
+            task.wait(2)
+            local twOut = TweenService:Create(NotifFrame, TweenInfo.new(0.25), {Position = UDim2.new(0.5, -125, 0, -60)})
+            twOut:Play()
+            task.wait(0.25)
+            NotifFrame.Visible = false
+        end)
+    end)
+end
+
+-- FOV Kör
+local FOVFrame = Instance.new("Frame")
+FOVFrame.Name = "FOVCircle"
+FOVFrame.Parent = ScreenGui
+FOVFrame.BackgroundTransparency = 1
+FOVFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVFrame.Size = UDim2.new(0, 280, 0, 280)
+FOVFrame.Visible = false
+
+local FOVStroke = Instance.new("UIStroke")
+FOVStroke.Parent = FOVFrame
+FOVStroke.Color = AccentColor
+FOVStroke.Transparency = 0.3
+FOVStroke.Thickness = 1.5
+
+local FOVCorner = Instance.new("UICorner")
+FOVCorner.CornerRadius = UDim.new(1, 0)
+FOVCorner.Parent = FOVFrame
+
+-- Toggle Button
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "voidXToggle"
+ToggleButton.Parent = ScreenGui
+ToggleButton.BackgroundColor3 = Color3.fromRGB(15, 12, 22)
+ToggleButton.BorderColor3 = AccentColor
+ToggleButton.BorderSizePixel = 2
+ToggleButton.Position = UDim2.new(0, 15, 0, 70)
+ToggleButton.Size = UDim2.new(0, 125, 0, 40)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Text = "🐾 voidX"
+ToggleButton.TextColor3 = AccentColor
+ToggleButton.TextSize = 11
+
+local BtnCorner = Instance.new("UICorner")
+BtnCorner.CornerRadius = UDim.new(0, 8)
+BtnCorner.Parent = ToggleButton
+
+-- Main Window
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(12, 10, 18)
+MainFrame.BorderColor3 = AccentColor
+MainFrame.BorderSizePixel = 1
+MainFrame.Position = UDim2.new(0.5, -165, 0.5, -195)
+MainFrame.Size = UDim2.new(0, 330, 0, 390)
+MainFrame.Visible = true
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 10)
+MainCorner.Parent = MainFrame
+
+-- Header
+local TitleBar = Instance.new("Frame")
+TitleBar.Parent = MainFrame
+TitleBar.BackgroundColor3 = Color3.fromRGB(18, 14, 26)
+TitleBar.Size = UDim2.new(1, 0, 0, 34)
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = TitleBar
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Parent = TitleBar
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+TitleLabel.Size = UDim2.new(1, -45, 1, 0)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "voidX // Advanced Suite"
+TitleLabel.TextColor3 = AccentColor
+TitleLabel.TextSize = 12
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Parent = TitleBar
+CloseBtn.BackgroundColor3 = Color3.fromRGB(210, 45, 80)
+CloseBtn.Position = UDim2.new(1, -26, 0, 6)
+CloseBtn.Size = UDim2.new(0, 20, 0, 20)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 10
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 5)
+CloseCorner.Parent = CloseBtn
+
+CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
+ToggleButton.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
+
+-- Dinamikus Téma / Színfrissítő
+local function UpdateThemeColor(newColor)
+    AccentColor = newColor
+    NotifFrame.BorderColor3 = AccentColor
+    NotifLabel.TextColor3 = AccentColor
+    FOVStroke.Color = AccentColor
+    ToggleButton.BorderColor3 = AccentColor
+    ToggleButton.TextColor3 = AccentColor
+    MainFrame.BorderColor3 = AccentColor
+    TitleLabel.TextColor3 = AccentColor
+end
+
+-- Tab Bar
+local TabBar = Instance.new("Frame")
+TabBar.Parent = MainFrame
+TabBar.BackgroundTransparency = 1
+TabBar.Position = UDim2.new(0, 6, 0, 40)
+TabBar.Size = UDim2.new(1, -12, 0, 28)
+
+local TabListLayout = Instance.new("UIListLayout")
+TabListLayout.Parent = TabBar
+TabListLayout.FillDirection = Enum.FillDirection.Horizontal
+TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabListLayout.Padding = UDim.new(0, 4)
+
+local tabs = {"Combat", "Visuals", "Skins", "Misc"}
+local contentFrames = {}
+local tabButtons = {}
+
+for i, tabName in ipairs(tabs) do
+    local tabBtn = Instance.new("TextButton")
+    tabBtn.Parent = TabBar
+    tabBtn.BackgroundColor3 = (i == 1) and Color3.fromRGB(45, 18, 65) or Color3.fromRGB(20, 16, 28)
+    tabBtn.BorderColor3 = (i == 1) and AccentColor or Color3.fromRGB(40, 30, 55)
+    tabBtn.BorderSizePixel = 1
+    tabBtn.Size = UDim2.new(0.238, 0, 1, 0)
+    tabBtn.Font = Enum.Font.GothamBold
+    tabBtn.Text = tabName
+    tabBtn.TextColor3 = (i == 1) and AccentColor or Color3.fromRGB(150, 130, 170)
+    tabBtn.TextSize = 10
+
+    local tabCorner = Instance.new("UICorner")
+    tabCorner.CornerRadius = UDim.new(0, 5)
+    tabCorner.Parent = tabBtn
+
+    tabButtons[tabName] = tabBtn
+
+    local cFrame = Instance.new("ScrollingFrame")
+    cFrame.Parent = MainFrame
+    cFrame.BackgroundTransparency = 1
+    cFrame.Position = UDim2.new(0, 8, 0, 74)
+    cFrame.Size = UDim2.new(1, -16, 1, -82)
+    cFrame.CanvasSize = UDim2.new(0, 0, 0, 520)
+    cFrame.ScrollBarThickness = 2
+    cFrame.Visible = (i == 1)
+    
+    local list = Instance.new("UIListLayout")
+    list.Parent = cFrame
+    list.SortOrder = Enum.SortOrder.LayoutOrder
+    list.Padding = UDim.new(0, 6)
+
+    contentFrames[tabName] = cFrame
+
+    tabBtn.MouseButton1Click:Connect(function()
+        for _, frame in pairs(contentFrames) do frame.Visible = false end
+        for _, btn in pairs(tabButtons) do
+            btn.BackgroundColor3 = Color3.fromRGB(20, 16, 28)
+            btn.TextColor3 = Color3.fromRGB(150, 130, 170)
+            btn.BorderColor3 = Color3.fromRGB(40, 30, 55)
+        end
+        
+        cFrame.Visible = true
+        tabBtn.BackgroundColor3 = Color3.fromRGB(45, 18, 65)
+        tabBtn.TextColor3 = AccentColor
+        tabBtn.BorderColor3 = AccentColor
+    end)
+end
+
+-- UI Segédfüggvények
+local function AddToggle(tabName, text, toggleKey)
+    local parent = contentFrames[tabName]
+    if not parent then return end
+
+    local btn = Instance.new("TextButton")
+    btn.Parent = parent
+    btn.BackgroundColor3 = Color3.fromRGB(18, 14, 25)
+    btn.BorderColor3 = Color3.fromRGB(40, 30, 55)
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.Font = Enum.Font.GothamMedium
+    btn.Text = "  " .. text .. ": [OFF]"
+    btn.TextColor3 = Color3.fromRGB(180, 170, 200)
+    btn.TextSize = 11
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        getgenv().voidXToggles[toggleKey] = not getgenv().voidXToggles[toggleKey]
+        local state = getgenv().voidXToggles[toggleKey]
+        btn.Text = "  " .. text .. ": [" .. (state and "ON" or "OFF") .. "]"
+        btn.TextColor3 = state and AccentColor or Color3.fromRGB(180, 170, 200)
+        btn.BorderColor3 = state and AccentColor or Color3.fromRGB(40, 30, 55)
+        Notify(text .. ": " .. (state and "ON" or "OFF"))
+    end)
+end
+
+local function AddButtonOption(tabName, text, options, optionKey, callback)
+    local parent = contentFrames[tabName]
+    if not parent then return end
+
+    local currentIndex = 1
+    for i, v in ipairs(options) do
+        if v == getgenv().voidXOptions[optionKey] then currentIndex = i end
+    end
+
+    local btn = Instance.new("TextButton")
+    btn.Parent = parent
+    btn.BackgroundColor3 = Color3.fromRGB(18, 14, 25)
+    btn.BorderColor3 = Color3.fromRGB(40, 30, 55)
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.Font = Enum.Font.GothamMedium
+    btn.Text = "  " .. text .. ": < " .. tostring(getgenv().voidXOptions[optionKey]) .. " >"
+    btn.TextColor3 = AccentColor
+    btn.TextSize = 11
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        currentIndex = currentIndex + 1
+        if currentIndex > #options then currentIndex = 1 end
+        local selectedVal = options[currentIndex]
+        getgenv().voidXOptions[optionKey] = selectedVal
+        btn.Text = "  " .. text .. ": < " .. tostring(selectedVal) .. " >"
+        if callback then callback(selectedVal) end
+    end)
+end
+
+local function AddActionButton(tabName, text, callback)
+    local parent = contentFrames[tabName]
+    if not parent then return end
+
+    local btn = Instance.new("TextButton")
+    btn.Parent = parent
+    btn.BackgroundColor3 = Color3.fromRGB(35, 15, 50)
+    btn.BorderColor3 = AccentColor
+    btn.Size = UDim2.new(1, 0, 0, 36)
+    btn.Font = Enum.Font.GothamBold
+    btn.Text = "  🐾 " .. text
+    btn.TextColor3 = AccentColor
+    btn.TextSize = 11
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function() pcall(callback) end)
+end
+
+-- ==============================================================================
+-- UJ FUNKCIOK BEALLITASA
+-- ==============================================================================
+
+-- COMBAT
+AddToggle("Combat", "Camera Aimbot", "AimEnabled")
+AddButtonOption("Combat", "Aim Smoothness", {0.1, 0.2, 0.3, 0.5, 0.8}, "Smoothness")
+AddButtonOption("Combat", "HitPart Selection", {"Head", "HumanoidRootPart"}, "HitPart")
+AddButtonOption("Combat", "FOV Radius", {80, 120, 140, 180, 250}, "FOVRadius")
+AddToggle("Combat", "Ragebot (Auto Hover & Fire)", "RageEnabled")
+AddToggle("Combat", "Void Hit & Run (Teleport Loop)", "VoidSpam")
+AddToggle("Combat", "Hitbox Expander", "HitboxEnabled")
+AddToggle("Combat", "Anti-Aim (Spinbot Yaw)", "AntiAimEnabled")
+AddToggle("Combat", "Anti-Katana (Melee Avoid)", "AntiKatanaEnabled")
+
+-- VISUALS
+AddToggle("Visuals", "Player Outline ESP", "PlayerOutline")
+AddToggle("Visuals", "Draw FOV Circle", "ShowFOV")
+AddButtonOption("Visuals", "UI Color Theme", {"Purple", "Neon Green", "Cyan", "Red", "Yellow", "Pink"}, "SelectedTheme", function(val)
+    if ThemeColors[val] then
+        UpdateThemeColor(ThemeColors[val])
+        Notify("Theme set to: " .. val)
+    end
+end)
+
+-- SKINS
+AddActionButton("Skins", "Unlock All Weapon Skins & Wraps", function()
+    pcall(function()
+        if getgc then
+            for _, v in pairs(getgc(true)) do
+                if typeof(v) == "table" then
+                    if rawget(v, "Skins") or rawget(v, "WeaponSkins") or rawget(v, "Inventory") or rawget(v, "OwnedSkins") then
+                        for k, _ in pairs(v) do
+                            if type(k) == "string" then v[k] = true end
+                        end
                     end
                 end
             end
         end
     end)
-    Library:Notify('Xenoware: Minden skin, wrap, charm és finisher sikeresen feloldva (Keyless)!')
+    Notify("Skins & Wraps Unlocked!")
 end)
+AddToggle("Skins", "Auto Skin Override Loop", "UnlockAll")
+
+-- MISC
+AddToggle("Misc", "Hit Sounds Effect", "HitSoundsEnabled")
+AddButtonOption("Misc", "Hit Sound Type", {"Neverlose", "Gamesense", "Rust", "Minecraft", "Hitmarker", "Bell"}, "SelectedHitSound")
+AddToggle("Misc", "Advanced Fly", "FlyEnabled")
+AddToggle("Misc", "Platform Device Spoofer", "SpoofEnabled")
+
+-- Dragging
+local function makeDraggable(guiObject)
+    local dragging, dragInput, dragStart, startPos
+    guiObject.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = guiObject.Position
+        end
+    end)
+    guiObject.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            guiObject.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+makeDraggable(MainFrame)
+makeDraggable(ToggleButton)
 
 -- ==============================================================================
--- 4. CHARACTER TAB (Fly, VoidSpam & Movement)
--- ==============================================================================
-local CharGroup = Tabs.Character:AddLeftGroupbox('Movement & Exploits')
-CharGroup:AddToggle('FlyEnabled', { Text = 'Advanced Fly', Default = false })
-CharGroup:AddSlider('FlySpeed', { Text = 'Flight Speed', Default = 60, Min = 10, Max = 250, Rounding = 0 })
-CharGroup:AddToggle('VoidSpam', { Text = 'Void Spam (Teleport Loop)', Default = false })
-
--- ==============================================================================
--- 5. CONFIG TAB (Theme Manager & Szín Beállítások)
--- ==============================================================================
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({ 'ThemeManager_CustomTheme' })
-ThemeManager:SetFolder('XenowareKeylessFull')
-SaveManager:SetFolder('XenowareKeylessFull/configs')
-SaveManager:BuildConfigSection(Tabs.Config)
-ThemeManager:ApplyToTab(Tabs.Config)
-
-pcall(function()
-    ThemeManager:SetTheme("Default")
-end)
-
--- ==============================================================================
--- LOGIKÁK ÉS HÁTTÉRFOLYAMATOK
+-- LOGIKA ES HATTE RFOLYAMATOK
 -- ==============================================================================
 
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Visible = false
-FOVCircle.Thickness = 1.5
-FOVCircle.Color = Color3.fromRGB(0, 255, 128)
-FOVCircle.Filled = false
-FOVCircle.Transparency = 0.9
+-- Hit Sound Player
+local function PlayHitSound()
+    if not getgenv().voidXToggles.HitSoundsEnabled then return end
+    pcall(function()
+        local soundName = getgenv().voidXOptions.SelectedHitSound
+        local soundId = SoundIDs[soundName] or SoundIDs["Neverlose"]
+        
+        local sound = Instance.new("Sound")
+        sound.SoundId = soundId
+        sound.Volume = 2
+        sound.Parent = SoundService
+        sound:Play()
+        sound.Ended:Connect(function() sound:Destroy() end)
+    end)
+end
 
 local function getBestTarget()
     local bestTarget = nil
@@ -143,20 +493,16 @@ local function getBestTarget()
             local hrp = player.Character:FindFirstChild("HumanoidRootPart")
             
             if humanoid and humanoid.Health > 0 and hrp then
-                if Toggles.TeamCheck and Toggles.TeamCheck.Value and player.Team == LocalPlayer.Team and player.Team ~= nil then
+                if getgenv().voidXToggles.TeamCheck and player.Team == LocalPlayer.Team and player.Team ~= nil then
                     continue
                 end
                 
                 local dist = (localHRP.Position - hrp.Position).Magnitude
-                local maxDist = Options.Distance and Options.Distance.Value or 800
-                
-                if dist <= maxDist then
+                if dist <= getgenv().voidXOptions.Distance then
                     local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
                     if onScreen then
                         local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                        local fovLim = Options.FOVRadius and Options.FOVRadius.Value or 150
-                        
-                        if screenDist <= fovLim and screenDist < shortestDist then
+                        if screenDist <= getgenv().voidXOptions.FOVRadius and screenDist < shortestDist then
                             shortestDist = screenDist
                             bestTarget = player
                         end
@@ -168,193 +514,184 @@ local function getBestTarget()
     return bestTarget
 end
 
--- FOV Kör frissítése
+-- FOV Update
 RunService.RenderStepped:Connect(function()
-    local mousePos = UserInputService:GetMouseLocation()
-    FOVCircle.Position = mousePos
-    FOVCircle.Radius = Options.FOVRadius and Options.FOVRadius.Value or 150
-    FOVCircle.Visible = Toggles.ShowFOV and Toggles.ShowFOV.Value or false
+    pcall(function()
+        local mousePos = UserInputService:GetMouseLocation()
+        local fovSize = getgenv().voidXOptions.FOVRadius * 2
+        FOVFrame.Size = UDim2.new(0, fovSize, 0, fovSize)
+        FOVFrame.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
+        FOVFrame.Visible = getgenv().voidXToggles.ShowFOV
+    end)
 end)
 
--- Aimbot, Ragebot és Status kezelés
+-- Aimbot & Ragebot & HitSound Trigger
 RunService.RenderStepped:Connect(function()
-    local rageActive = Toggles.RageEnabled and Toggles.RageEnabled.Value
-    
     pcall(function()
-        if rageActive then
-            RageStatusLabel:SetText("Ragebot Status: Enabled [Hovering & Auto-Firing]")
-        else
-            RageStatusLabel:SetText("Ragebot Status: Disabled")
-        end
-    end)
+        local toggles = getgenv().voidXToggles
+        if not toggles.AimEnabled and not toggles.RageEnabled then return end
 
-    local target = getBestTarget()
-    if target and target.Character then
-        local hitPartName = Options.HitPart and Options.HitPart.Value or "Head"
-        local part = target.Character:FindFirstChild(hitPartName) or target.Character:FindFirstChild("HumanoidRootPart")
-        
-        if part then
-            local localChar = LocalPlayer.Character
-            if localChar and localChar:FindFirstChild("HumanoidRootPart") then
+        local target = getBestTarget()
+        if target and target.Character then
+            local partName = getgenv().voidXOptions.HitPart
+            local part = target.Character:FindFirstChild(partName) or target.Character:FindFirstChild("Head") or target.Character:FindFirstChild("HumanoidRootPart")
+            
+            if part and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local localHRP = LocalPlayer.Character.HumanoidRootPart
                 
-                -- Ragebot: Karakter az ellenség fölött lebeg, kamera/view mozog, automatikusan tüzel
-                if rageActive then
+                if toggles.RageEnabled and not toggles.VoidSpam then
                     local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
                     if targetHRP then
-                        localChar.HumanoidRootPart.CFrame = targetHRP.CFrame + Vector3.new(0, 6, 0)
-                        if mouse1click then
-                            mouse1click()
-                        elseif pressmousebutton1 then
-                            pressmousebutton1()
-                        end
+                        localHRP.CFrame = targetHRP.CFrame + Vector3.new(0, 5, 0)
+                        pcall(function()
+                            if mouse1click then mouse1click() end
+                            PlayHitSound()
+                        end)
                     end
                 end
                 
-                -- Szabványos Aimbot (Tiszta kamera aimbot)
-                if Toggles.AimEnabled and Toggles.AimEnabled.Value and not rageActive then
-                    local targetPos = part.Position
-                    local smooth = Options.AimSmooth and Options.AimSmooth.Value or 1
-                    Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), 1 / smooth)
+                if toggles.AimEnabled and not toggles.RageEnabled then
+                    local targetCF = CFrame.new(Camera.CFrame.Position, part.Position)
+                    Camera.CFrame = Camera.CFrame:Lerp(targetCF, getgenv().voidXOptions.Smoothness)
                 end
             end
         end
-    end
+    end)
 end)
 
--- Silent Aim Hook
-pcall(function()
-    local oldNamecall
-    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-        local args = {...}
-        local method = getnamecallmethod()
-        
-        if Toggles.SilentEnabled and Toggles.SilentEnabled.Value then
-            if method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRay" or method == "Raycast" then
-                for _, player in ipairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
-                        if not Toggles.SilentTeamCheck.Value or player.Team ~= LocalPlayer.Team then
-                            local hitPartName = Options.SilentHitPart and Options.SilentHitPart.Value or "Head"
-                            local part = player.Character:FindFirstChild(hitPartName)
-                            if part and method == "Raycast" then
-                                args[2] = (part.Position - args[1]).Unit * 1000
-                            end
+-- Anti-Katana (Melee Avoidance)
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+        if not getgenv().voidXToggles.AntiKatanaEnabled then return end
+        local localChar = LocalPlayer.Character
+        if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then return end
+        local localHRP = localChar.HumanoidRootPart
+
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local tool = player.Character:FindFirstChildOfClass("Tool")
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp and tool then
+                    local toolName = tool.Name:lower()
+                    if toolName:find("katana") or toolName:find("sword") or toolName:find("blade") or toolName:find("knife") or toolName:find("scythe") then
+                        local dist = (localHRP.Position - hrp.Position).Magnitude
+                        if dist < 12 then -- Ha 12 studon belül van katanával
+                            local escapeDirection = (localHRP.Position - hrp.Position).Unit
+                            localHRP.CFrame = localHRP.CFrame + (escapeDirection * 15) -- Elugrik tőle
                         end
                     end
                 end
             end
         end
-        return oldNamecall(self, unpack(args))
     end)
 end)
 
--- Triggerbot Logika
+-- Anti-Aim (Spinbot Yaw)
+local spinAngle = 0
 RunService.RenderStepped:Connect(function()
-    if Toggles.TriggerEnabled and Toggles.TriggerEnabled.Value then
-        local mouse = LocalPlayer:GetMouse()
-        local targetPart = mouse.Target
-        
-        if targetPart and targetPart.Parent then
-            local enemyPlayer = Players:GetPlayerFromCharacter(targetPart.Parent)
-            if enemyPlayer and enemyPlayer ~= LocalPlayer then
-                if not Toggles.TriggerTeamCheck.Value or enemyPlayer.Team ~= LocalPlayer.Team then
-                    if mouse1click then
-                        mouse1click()
-                    elseif pressmousebutton1 then
-                        pressmousebutton1()
+    pcall(function()
+        if not getgenv().voidXToggles.AntiAimEnabled then return end
+        local localChar = LocalPlayer.Character
+        if localChar and localChar:FindFirstChild("HumanoidRootPart") then
+            spinAngle = (spinAngle + getgenv().voidXOptions.AntiAimSpeed) % 360
+            local hrp = localChar.HumanoidRootPart
+            hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(spinAngle), 0)
+        end
+    end)
+end)
+
+-- Void Spam
+task.spawn(function()
+    while true do
+        task.wait(0.15)
+        pcall(function()
+            if getgenv().voidXToggles.VoidSpam then
+                local localChar = LocalPlayer.Character
+                if localChar and localChar:FindFirstChild("HumanoidRootPart") then
+                    local hrp = localChar.HumanoidRootPart
+                    local originalPos = hrp.CFrame
+                    
+                    local target = getBestTarget()
+                    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                        local targetHRP = target.Character.HumanoidRootPart
+                        hrp.CFrame = targetHRP.CFrame + Vector3.new(0, 4, 0)
+                        pcall(function()
+                            if mouse1click then mouse1click() end
+                            PlayHitSound()
+                        end)
+                        task.wait(0.04)
+                        hrp.CFrame = originalPos
                     end
                 end
             end
-        end
+        end)
     end
 end)
 
--- Hitbox Expander Logika
+-- Hitbox Expander
 RunService.RenderStepped:Connect(function()
-    if Toggles.HitboxEnabled and Toggles.HitboxEnabled.Value then
-        local scale = Options.HitboxSize and Options.HitboxSize.Value or 2.0
-        local transp = Options.HitboxTrans and Options.HitboxTrans.Value or 0.6
-        
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = p.Character.HumanoidRootPart
-                hrp.Size = Vector3.new(2 * scale, 2 * scale, 1 * scale)
-                hrp.Transparency = transp
-                hrp.CanCollide = false
+    pcall(function()
+        if getgenv().voidXToggles.HitboxEnabled then
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = p.Character.HumanoidRootPart
+                    hrp.Size = Vector3.new(4, 4, 2)
+                    hrp.Transparency = 0.6
+                    hrp.CanCollide = false
+                end
             end
         end
-    end
+    end)
 end)
 
--- Fly / Repülés Logika
-RunService.RenderStepped:Connect(function()
-    if Toggles.FlyEnabled and Toggles.FlyEnabled.Value then
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
-            local hrp = char.HumanoidRootPart
-            char.Humanoid.PlatformStand = true
-            
-            local moveDir = Vector3.new()
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector end
-            
-            local speed = Options.FlySpeed and Options.FlySpeed.Value or 60
-            hrp.Velocity = moveDir * speed
-        end
-    else
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.PlatformStand = false
-        end
-    end
-end)
-
--- VoidSpam Logika
+-- Outline ESP
 task.spawn(function()
     while true do
-        task.wait(0.05)
-        if Toggles.VoidSpam and Toggles.VoidSpam.Value then
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = LocalPlayer.Character.HumanoidRootPart
-                hrp.CFrame = hrp.CFrame + Vector3.new(0, -400, 0)
-            end
-        end
-    end
-end)
-
--- Outline ESP Logika
-local function applyHighlight(char)
-    if not char then return end
-    if char:FindFirstChild("XenowareOutline") then return end
-
-    local hl = Instance.new("Highlight")
-    hl.Name = "XenowareOutline"
-    hl.Adornee = char
-    hl.FillTransparency = 1
-    hl.OutlineColor = Color3.fromRGB(0, 255, 128)
-    hl.OutlineTransparency = 0
-    hl.Parent = char
-end
-
-task.spawn(function()
-    while true do
-        task.wait(1)
-        if Toggles.PlayerOutline and Toggles.PlayerOutline.Value then
+        task.wait(1.5)
+        pcall(function()
             for _, p in ipairs(Players:GetPlayers()) do
                 if p ~= LocalPlayer and p.Character then
-                    applyHighlight(p.Character)
+                    if getgenv().voidXToggles.PlayerOutline then
+                        if not p.Character:FindFirstChild("voidXOutline") then
+                            local hl = Instance.new("Highlight")
+                            hl.Name = "voidXOutline"
+                            hl.Adornee = p.Character
+                            hl.FillTransparency = 1
+                            hl.OutlineColor = AccentColor
+                            hl.OutlineTransparency = 0
+                            hl.Parent = p.Character
+                        else
+                            p.Character.voidXOutline.OutlineColor = AccentColor
+                        end
+                    else
+                        local hl = p.Character:FindFirstChild("voidXOutline")
+                        if hl then hl:Destroy() end
+                    end
                 end
+            end
+        end)
+    end
+end)
+
+-- Fly
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+        if getgenv().voidXToggles.FlyEnabled then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+                char.Humanoid.PlatformStand = true
+                local moveDir = Vector3.new()
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
+                char.HumanoidRootPart.Velocity = moveDir * getgenv().voidXOptions.FlySpeed
             end
         else
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character then
-                    local hl = p.Character:FindFirstChild("XenowareOutline")
-                    if hl then hl:Destroy() end
-                end
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.PlatformStand = false
             end
         end
-    end
+    end)
 end)
 
-Library:Notify('Xenoware // Complete Keyless Edition betöltődve!')
+Notify("voidX Advanced Loaded!")
